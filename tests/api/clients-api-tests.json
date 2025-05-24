@@ -1,0 +1,617 @@
+{
+  "info": {
+    "name": "FrioService - Clients API Tests",
+    "description": "Colección de pruebas para los endpoints de clientes de FrioService",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "client_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Autenticación",
+      "item": [
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', response.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Crear Cliente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"companyName\": \"Norte Supermercados SAC\",\n  \"contactPerson\": \"Luis García\",\n  \"businessRegistration\": \"20123456789\",\n  \"phone\": \"+51 945 678 123\",\n  \"email\": \"contacto@nortesupermercados.com\",\n  \"emergencyContact\": \"+51 987 654 321\",\n  \"address\": \"Av. Los Pinos 123, San Isidro\",\n  \"city\": \"Lima\",\n  \"postalCode\": \"15036\",\n  \"clientType\": \"COMPANY\",\n  \"preferredSchedule\": \"morning\",\n  \"notes\": \"Cliente corporativo con múltiples sucursales\",\n  \"isVip\": true,\n  \"discount\": 15\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/clients",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has success true', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.be.true;",
+              "});",
+              "",
+              "if (pm.response.code === 201) {",
+              "    const response = pm.response.json();",
+              "    pm.collectionVariables.set('client_id', response.data.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Obtener Todos los Clientes",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/clients?page=1&limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has pagination info', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.pagination).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Obtener Cliente por ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/clients/{{client_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients", "{{client_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Client has correct ID', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.data.id).to.equal(pm.collectionVariables.get('client_id'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Buscar Clientes",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/clients/search?q=Norte&page=1&limit=5",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients", "search"],
+          "query": [
+            {
+              "key": "q",
+              "value": "Norte"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response includes search term', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.searchTerm).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Filtrar Clientes por Tipo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/clients?clientType=COMPANY&status=ACTIVE",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients"],
+          "query": [
+            {
+              "key": "clientType",
+              "value": "COMPANY"
+            },
+            {
+              "key": "status",
+              "value": "ACTIVE"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "6. Obtener Clientes VIP",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/clients/vip?page=1&limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients", "vip"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('All clients are VIP', function () {",
+              "    const response = pm.response.json();",
+              "    if (response.data.length > 0) {",
+              "        response.data.forEach(client => {",
+              "            pm.expect(client.isVip).to.be.true;",
+              "        });",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Obtener Clientes por Tipo (Company)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/clients/type/company?page=1&limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients", "type", "company"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "8. Actualizar Cliente",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"companyName\": \"Norte Supermercados SAC - ACTUALIZADO\",\n  \"phone\": \"+51 945 678 999\",\n  \"city\": \"Lima Metropolitana\",\n  \"notes\": \"Cliente VIP con descuentos especiales - Actualizado\",\n  \"discount\": 20\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/clients/{{client_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients", "{{client_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Client was updated', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.data.discount).to.equal(20);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Obtener Estadísticas del Cliente",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/clients/{{client_id}}/stats",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients", "{{client_id}}", "stats"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Stats include required fields', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.data.totalServices).to.exist;",
+              "    pm.expect(response.data.equipmentCount).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Actualizar Estado del Cliente",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"SUSPENDED\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/clients/{{client_id}}/status",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients", "{{client_id}}", "status"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Status was updated', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.data.status).to.equal('SUSPENDED');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Cambiar Estado VIP",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"isVip\": false,\n  \"discount\": 0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/clients/{{client_id}}/vip",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients", "{{client_id}}", "vip"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('VIP status was updated', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.data.isVip).to.be.false;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. Obtener Perfil de Cliente por User ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/clients/profile/{{user_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients", "profile", "{{user_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Profile includes user information', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.data.user).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. Validación - Crear Cliente Sin Datos Requeridos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clientType\": \"COMPANY\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/clients",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Response contains validation errors', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.errors).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14. Eliminar Cliente",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/clients/{{client_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clients", "{{client_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Client was deleted', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

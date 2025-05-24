@@ -1,0 +1,529 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2024-02-14T12:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "req_clients_create",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients",
+      "name": "1. Crear Cliente",
+      "description": "Crear un nuevo perfil de cliente",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"userId\": \"{{ _.user_id }}\",\n  \"companyName\": \"Norte Supermercados SAC\",\n  \"contactPerson\": \"Luis García\",\n  \"businessRegistration\": \"20123456789\",\n  \"phone\": \"+51 945 678 123\",\n  \"email\": \"contacto@nortesupermercados.com\",\n  \"emergencyContact\": \"+51 987 654 321\",\n  \"address\": \"Av. Los Pinos 123, San Isidro\",\n  \"city\": \"Lima\",\n  \"postalCode\": \"15036\",\n  \"clientType\": \"COMPANY\",\n  \"preferredSchedule\": \"morning\",\n  \"notes\": \"Cliente corporativo con múltiples sucursales\",\n  \"isVip\": true,\n  \"discount\": 15\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_content_type"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_getall",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients",
+      "name": "2. Obtener Todos los Clientes",
+      "description": "Obtener lista paginada de clientes con filtros",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "id": "pair_page"
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "id": "pair_limit"
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_getbyid",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients/{{ _.client_id }}",
+      "name": "3. Obtener Cliente por ID",
+      "description": "Obtener un cliente específico por su ID",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_search",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients/search",
+      "name": "4. Buscar Clientes",
+      "description": "Buscar clientes por nombre, empresa o email",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "q",
+          "value": "Norte",
+          "id": "pair_search"
+        },
+        {
+          "name": "page",
+          "value": "1",
+          "id": "pair_page"
+        },
+        {
+          "name": "limit",
+          "value": "5",
+          "id": "pair_limit"
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_filter",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients",
+      "name": "5. Filtrar Clientes",
+      "description": "Filtrar clientes por tipo, estado, ciudad, etc.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "clientType",
+          "value": "COMPANY",
+          "id": "pair_type"
+        },
+        {
+          "name": "status",
+          "value": "ACTIVE",
+          "id": "pair_status"
+        },
+        {
+          "name": "city",
+          "value": "Lima",
+          "id": "pair_city"
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_vip",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients/vip",
+      "name": "6. Obtener Clientes VIP",
+      "description": "Obtener lista de clientes VIP",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "id": "pair_page"
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "id": "pair_limit"
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_by_type",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients/type/company",
+      "name": "7. Obtener Clientes por Tipo",
+      "description": "Obtener clientes por tipo (personal o company)",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "id": "pair_page"
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "id": "pair_limit"
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_update",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients/{{ _.client_id }}",
+      "name": "8. Actualizar Cliente",
+      "description": "Actualizar información de un cliente",
+      "method": "PUT",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"companyName\": \"Norte Supermercados SAC - ACTUALIZADO\",\n  \"phone\": \"+51 945 678 999\",\n  \"city\": \"Lima Metropolitana\",\n  \"notes\": \"Cliente VIP con descuentos especiales - Actualizado\",\n  \"discount\": 20\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_content_type"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_stats",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients/{{ _.client_id }}/stats",
+      "name": "9. Obtener Estadísticas del Cliente",
+      "description": "Obtener estadísticas detalladas de un cliente",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_status",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients/{{ _.client_id }}/status",
+      "name": "10. Actualizar Estado",
+      "description": "Cambiar el estado de un cliente",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"SUSPENDED\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_content_type"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_vip_toggle",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients/{{ _.client_id }}/vip",
+      "name": "11. Cambiar Estado VIP",
+      "description": "Promover o remover estatus VIP de un cliente",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"isVip\": false,\n  \"discount\": 0\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_content_type"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_profile",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients/profile/{{ _.user_id }}",
+      "name": "12. Obtener Perfil por User ID",
+      "description": "Obtener perfil de cliente por ID de usuario",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_delete",
+      "parentId": "fld_clients",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/clients/{{ _.client_id }}",
+      "name": "13. Eliminar Cliente",
+      "description": "Eliminar un cliente (soft delete)",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_clients",
+      "parentId": "wrk_main",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "name": "FrioService - Clients API",
+      "description": "Endpoints para gestión de clientes",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1707912000000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "wrk_main",
+      "parentId": null,
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "name": "FrioService Backend",
+      "description": "API completa para gestión de servicios de refrigeración",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "env_base",
+      "parentId": "wrk_main",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:3001",
+        "auth_token": "",
+        "client_id": "",
+        "user_id": ""
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "base_url",
+          "auth_token",
+          "client_id",
+          "user_id"
+        ]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1707912000000,
+      "_type": "environment"
+    }
+  ]
+}

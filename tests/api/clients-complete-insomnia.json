@@ -1,0 +1,196 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2024-01-20T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "req_clients_create",
+      "parentId": "fld_clients",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/clients",
+      "name": "01. Create Client",
+      "description": "Creates a new client profile",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"userId\": \"{{ _.user_client_id }}\",\n  \"companyName\": \"Empresa Test S.A.\",\n  \"contactPerson\": \"Juan Pérez\",\n  \"businessRegistration\": \"12345678901\",\n  \"phone\": \"+51987654321\",\n  \"email\": \"cliente@test.com\",\n  \"emergencyContact\": \"+51123456789\",\n  \"address\": \"Av. Principal 123\",\n  \"city\": \"Lima\",\n  \"postalCode\": \"15001\",\n  \"clientType\": \"COMPANY\",\n  \"preferredSchedule\": \"morning\",\n  \"notes\": \"Cliente corporativo importante\",\n  \"isVip\": true,\n  \"discount\": 10.5\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708800000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_get_all",
+      "parentId": "fld_clients",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/clients",
+      "name": "02. Get All Clients",
+      "description": "Retrieves all clients with optional filters",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "status",
+          "value": "ACTIVE",
+          "disabled": true
+        },
+        {
+          "name": "clientType",
+          "value": "COMPANY",
+          "disabled": true
+        },
+        {
+          "name": "city",
+          "value": "Lima",
+          "disabled": true
+        },
+        {
+          "name": "isVip",
+          "value": "true",
+          "disabled": true
+        },
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": true
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "disabled": true
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708700000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_clients_search",
+      "parentId": "fld_clients",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/clients/search",
+      "name": "03. Search Clients",
+      "description": "Searches clients by query",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "q",
+          "value": "Juan"
+        },
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": true
+        },
+        {
+          "name": "limit",
+          "value": "5",
+          "disabled": true
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708600000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_clients",
+      "parentId": "wrk_main",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "name": "Clients API",
+      "description": "Client management endpoints",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1705708800000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "wrk_main",
+      "parentId": null,
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "name": "FrioService Backend API - Clients",
+      "description": "Complete API testing collection for Clients",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "env_base",
+      "parentId": "wrk_main",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:3001",
+        "admin_token": "",
+        "client_token": "",
+        "technician_token": "",
+        "client_id": "",
+        "user_client_id": ""
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "base_url",
+          "admin_token",
+          "client_token",
+          "technician_token",
+          "client_id",
+          "user_client_id"
+        ]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1705708800000,
+      "_type": "environment"
+    }
+  ]
+}

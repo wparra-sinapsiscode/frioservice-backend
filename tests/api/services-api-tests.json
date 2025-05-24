@@ -1,0 +1,484 @@
+{
+  "info": {
+    "name": "FrioService - Services API Tests",
+    "description": "Colección de pruebas para los endpoints de servicios de FrioService",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "service_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "client_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "technician_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Autenticación",
+      "item": [
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', response.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Crear Servicio",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Mantenimiento Aires Acondicionados\",\n  \"description\": \"Mantenimiento preventivo de 3 unidades de aire acondicionado\",\n  \"clientId\": \"{{client_id}}\",\n  \"type\": \"MAINTENANCE\",\n  \"priority\": \"MEDIUM\",\n  \"scheduledDate\": \"2024-02-15T10:00:00.000Z\",\n  \"estimatedDuration\": 120,\n  \"address\": \"Calle 123 #45-67, Bogotá\",\n  \"contactPhone\": \"+57 300 123 4567\",\n  \"emergencyContact\": \"+57 300 765 4321\",\n  \"accessInstructions\": \"Tocar timbre del apartamento 301\",\n  \"clientNotes\": \"Los equipos presentan ruido excesivo\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/services",
+          "host": ["{{base_url}}"],
+          "path": ["api", "services"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has success true', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.be.true;",
+              "});",
+              "",
+              "if (pm.response.code === 201) {",
+              "    const response = pm.response.json();",
+              "    pm.collectionVariables.set('service_id', response.data.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Obtener Todos los Servicios",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/services?page=1&limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["api", "services"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has pagination info', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.pagination).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Obtener Servicio por ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/services/{{service_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "services", "{{service_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Service has correct ID', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.data.id).to.equal(pm.collectionVariables.get('service_id'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Filtrar Servicios por Estado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/services?status=PENDING&type=MAINTENANCE",
+          "host": ["{{base_url}}"],
+          "path": ["api", "services"],
+          "query": [
+            {
+              "key": "status",
+              "value": "PENDING"
+            },
+            {
+              "key": "type",
+              "value": "MAINTENANCE"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "5. Asignar Técnico",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"technicianId\": \"{{technician_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/services/{{service_id}}/assign",
+          "host": ["{{base_url}}"],
+          "path": ["api", "services", "{{service_id}}", "assign"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Technician was assigned', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.data.technicianId).to.equal(pm.collectionVariables.get('technician_id'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Actualizar Servicio",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Mantenimiento Aires Acondicionados - ACTUALIZADO\",\n  \"priority\": \"HIGH\",\n  \"status\": \"IN_PROGRESS\",\n  \"estimatedDuration\": 180\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/services/{{service_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "services", "{{service_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Service was updated', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.data.priority).to.equal('HIGH');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Completar Servicio",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"workPerformed\": \"Se realizó mantenimiento preventivo completo de 3 unidades de aire acondicionado. Se limpiaron filtros, se verificó el estado del refrigerante y se ajustaron los componentes eléctricos.\",\n  \"timeSpent\": 180,\n  \"materialsUsed\": [\n    {\n      \"name\": \"Filtro de aire\",\n      \"quantity\": 3,\n      \"unit\": \"unidades\",\n      \"cost\": 25000\n    },\n    {\n      \"name\": \"Refrigerante R410A\",\n      \"quantity\": 1,\n      \"unit\": \"libra\",\n      \"cost\": 45000\n    }\n  ],\n  \"technicianNotes\": \"Todos los equipos funcionando correctamente. Se recomienda cambiar filtros cada 3 meses.\",\n  \"clientSignature\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==\",\n  \"images\": [\n    \"https://example.com/image1.jpg\",\n    \"https://example.com/image2.jpg\"\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/services/{{service_id}}/complete",
+          "host": ["{{base_url}}"],
+          "path": ["api", "services", "{{service_id}}", "complete"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Service was completed', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.data.status).to.equal('COMPLETED');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Servicios por Cliente",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/services/client/{{client_id}}?page=1&limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["api", "services", "client", "{{client_id}}"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "9. Servicios por Técnico",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/services/technician/{{technician_id}}?page=1&limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["api", "services", "technician", "{{technician_id}}"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "10. Validación - Crear Servicio Sin Datos Requeridos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"Servicio sin título ni cliente\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/services",
+          "host": ["{{base_url}}"],
+          "path": ["api", "services"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Response contains validation errors', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.errors).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Eliminar Servicio",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/services/{{service_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "services", "{{service_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Service was deleted', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

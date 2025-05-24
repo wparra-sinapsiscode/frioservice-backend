@@ -1,0 +1,394 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2024-01-20T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "req_quotes_create",
+      "parentId": "fld_quotes",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/quotes",
+      "name": "01. Create Quote",
+      "description": "Creates a new quote for a service",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"serviceId\": \"{{ _.service_id }}\",\n  \"clientId\": \"{{ _.client_id }}\",\n  \"title\": \"Mantenimiento Refrigerador Industrial\",\n  \"description\": \"Mantenimiento preventivo completo del refrigerador\",\n  \"amount\": 250.00,\n  \"validUntil\": \"2024-12-31T23:59:59.000Z\",\n  \"notes\": \"Incluye limpieza, calibración y verificación de componentes\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708800000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_quotes_get_all",
+      "parentId": "fld_quotes",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/quotes",
+      "name": "02. Get All Quotes",
+      "description": "Retrieves all quotes with optional filters",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "status",
+          "value": "PENDING",
+          "disabled": true
+        },
+        {
+          "name": "clientId",
+          "value": "{{ _.client_id }}",
+          "disabled": true
+        },
+        {
+          "name": "serviceId",
+          "value": "{{ _.service_id }}",
+          "disabled": true
+        },
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": true
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "disabled": true
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708700000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_quotes_get_expired",
+      "parentId": "fld_quotes",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/quotes/expired",
+      "name": "03. Get Expired Quotes",
+      "description": "Retrieves all expired quotes",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": true
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "disabled": true
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708600000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_quotes_get_by_id",
+      "parentId": "fld_quotes",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/quotes/{{ _.quote_id }}",
+      "name": "04. Get Quote by ID",
+      "description": "Retrieves specific quote by ID",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708500000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_quotes_get_by_client",
+      "parentId": "fld_quotes",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/quotes/client/{{ _.client_id }}",
+      "name": "05. Get Quotes by Client",
+      "description": "Retrieves all quotes for a specific client",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "status",
+          "value": "PENDING",
+          "disabled": true
+        },
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": true
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "disabled": true
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.client_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708400000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_quotes_update",
+      "parentId": "fld_quotes",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/quotes/{{ _.quote_id }}",
+      "name": "06. Update Quote",
+      "description": "Updates existing quote",
+      "method": "PUT",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Mantenimiento Refrigerador Industrial - Actualizado\",\n  \"amount\": 300.00,\n  \"validUntil\": \"2025-01-31T23:59:59.000Z\",\n  \"notes\": \"Precio actualizado - incluye repuestos adicionales\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708300000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_quotes_approve",
+      "parentId": "fld_quotes",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/quotes/{{ _.quote_id }}/approve",
+      "name": "07. Approve Quote",
+      "description": "Approves a quote",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"notes\": \"Aprobado por el cliente - proceder con el servicio\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.client_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708200000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_quotes_reject",
+      "parentId": "fld_quotes",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/quotes/{{ _.quote_id }}/reject",
+      "name": "08. Reject Quote",
+      "description": "Rejects a quote",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"notes\": \"Cliente solicita modificaciones en el precio\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.client_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708100000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_quotes_delete",
+      "parentId": "fld_quotes",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/quotes/{{ _.quote_id }}",
+      "name": "09. Delete Quote",
+      "description": "Deletes a quote",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_quotes",
+      "parentId": "wrk_quotes",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "name": "Quotes API",
+      "description": "Quote management endpoints",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1705708800000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "wrk_quotes",
+      "parentId": null,
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "name": "FrioService Backend API - Quotes",
+      "description": "Complete API testing collection for Quotes",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "env_quotes",
+      "parentId": "wrk_quotes",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:3001",
+        "admin_token": "",
+        "client_token": "",
+        "technician_token": "",
+        "client_id": "",
+        "service_id": "",
+        "quote_id": ""
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "base_url",
+          "admin_token",
+          "client_token", 
+          "technician_token",
+          "client_id",
+          "service_id",
+          "quote_id"
+        ]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1705708800000,
+      "_type": "environment"
+    }
+  ]
+}

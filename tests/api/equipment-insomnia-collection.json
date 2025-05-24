@@ -1,0 +1,323 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2024-01-20T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "req_equipment_create",
+      "parentId": "fld_equipment",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/equipment",
+      "name": "01. Create Equipment",
+      "description": "Creates new equipment for a client",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"clientId\": \"{{ _.client_id }}\",\n  \"name\": \"Refrigerador Industrial\",\n  \"model\": \"RI-2024\",\n  \"brand\": \"Samsung\",\n  \"serialNumber\": \"SN123456789\",\n  \"type\": \"Refrigerador\",\n  \"location\": \"Cocina Principal\",\n  \"installDate\": \"2024-01-15T00:00:00.000Z\",\n  \"warrantyExpiry\": \"2026-01-15T00:00:00.000Z\",\n  \"notes\": \"Equipo nuevo con garantía extendida\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708800000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_equipment_get_all",
+      "parentId": "fld_equipment",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/equipment",
+      "name": "02. Get All Equipment",
+      "description": "Retrieves all equipment with optional filters",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "clientId",
+          "value": "{{ _.client_id }}",
+          "disabled": true
+        },
+        {
+          "name": "status",
+          "value": "ACTIVE",
+          "disabled": true
+        },
+        {
+          "name": "type",
+          "value": "Refrigerador",
+          "disabled": true
+        },
+        {
+          "name": "brand",
+          "value": "Samsung",
+          "disabled": true
+        },
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": true
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "disabled": true
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708700000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_equipment_get_by_id",
+      "parentId": "fld_equipment",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/equipment/{{ _.equipment_id }}",
+      "name": "03. Get Equipment by ID",
+      "description": "Retrieves specific equipment by ID",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708600000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_equipment_get_by_client",
+      "parentId": "fld_equipment",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/equipment/client/{{ _.client_id }}",
+      "name": "04. Get Equipment by Client",
+      "description": "Retrieves all equipment for a specific client",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "status",
+          "value": "ACTIVE",
+          "disabled": true
+        },
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": true
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "disabled": true
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.client_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708500000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_equipment_update",
+      "parentId": "fld_equipment",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/equipment/{{ _.equipment_id }}",
+      "name": "05. Update Equipment",
+      "description": "Updates existing equipment",
+      "method": "PUT",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Refrigerador Industrial Actualizado\",\n  \"location\": \"Cocina Secundaria\",\n  \"status\": \"MAINTENANCE\",\n  \"notes\": \"Equipo en mantenimiento preventivo\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708400000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_equipment_update_status",
+      "parentId": "fld_equipment",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/equipment/{{ _.equipment_id }}/status",
+      "name": "06. Update Equipment Status",
+      "description": "Updates equipment status",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"status\": \"BROKEN\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.technician_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708300000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_equipment_delete",
+      "parentId": "fld_equipment",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "url": "{{ _.base_url }}/api/equipment/{{ _.equipment_id }}",
+      "name": "07. Delete Equipment",
+      "description": "Deletes equipment (hard delete)",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.admin_token }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705708200000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_equipment",
+      "parentId": "wrk_equipment",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "name": "Equipment API",
+      "description": "Equipment management endpoints",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1705708800000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "wrk_equipment",
+      "parentId": null,
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "name": "FrioService Backend API - Equipment",
+      "description": "Complete API testing collection for Equipment",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "env_equipment",
+      "parentId": "wrk_equipment",
+      "modified": 1705708800000,
+      "created": 1705708800000,
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:3001",
+        "admin_token": "",
+        "client_token": "",
+        "technician_token": "",
+        "client_id": "",
+        "equipment_id": ""
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "base_url",
+          "admin_token",
+          "client_token",
+          "technician_token",
+          "client_id",
+          "equipment_id"
+        ]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1705708800000,
+      "_type": "environment"
+    }
+  ]
+}

@@ -1,0 +1,428 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2024-02-14T10:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "req_services_create",
+      "parentId": "fld_services",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/services",
+      "name": "1. Crear Servicio",
+      "description": "Crear un nuevo servicio con todos los datos requeridos",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Mantenimiento Aires Acondicionados\",\n  \"description\": \"Mantenimiento preventivo de 3 unidades de aire acondicionado\",\n  \"clientId\": \"{{ _.client_id }}\",\n  \"type\": \"MAINTENANCE\",\n  \"priority\": \"MEDIUM\",\n  \"scheduledDate\": \"2024-02-15T10:00:00.000Z\",\n  \"estimatedDuration\": 120,\n  \"address\": \"Calle 123 #45-67, Bogotá\",\n  \"contactPhone\": \"+57 300 123 4567\",\n  \"emergencyContact\": \"+57 300 765 4321\",\n  \"accessInstructions\": \"Tocar timbre del apartamento 301\",\n  \"clientNotes\": \"Los equipos presentan ruido excesivo\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_content_type"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_services_getall",
+      "parentId": "fld_services",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/services",
+      "name": "2. Obtener Todos los Servicios",
+      "description": "Obtener lista paginada de servicios con filtros opcionales",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "id": "pair_page"
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "id": "pair_limit"
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_services_getbyid",
+      "parentId": "fld_services",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/services/{{ _.service_id }}",
+      "name": "3. Obtener Servicio por ID",
+      "description": "Obtener un servicio específico por su ID",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_services_filter",
+      "parentId": "fld_services",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/services",
+      "name": "4. Filtrar Servicios",
+      "description": "Filtrar servicios por estado, tipo, prioridad, etc.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "status",
+          "value": "PENDING",
+          "id": "pair_status"
+        },
+        {
+          "name": "type",
+          "value": "MAINTENANCE",
+          "id": "pair_type"
+        },
+        {
+          "name": "priority",
+          "value": "MEDIUM",
+          "id": "pair_priority"
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_services_assign",
+      "parentId": "fld_services",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/services/{{ _.service_id }}/assign",
+      "name": "5. Asignar Técnico",
+      "description": "Asignar un técnico a un servicio específico",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"technicianId\": \"{{ _.technician_id }}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_content_type"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_services_update",
+      "parentId": "fld_services",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/services/{{ _.service_id }}",
+      "name": "6. Actualizar Servicio",
+      "description": "Actualizar información de un servicio existente",
+      "method": "PUT",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Mantenimiento Aires Acondicionados - ACTUALIZADO\",\n  \"priority\": \"HIGH\",\n  \"status\": \"IN_PROGRESS\",\n  \"estimatedDuration\": 180\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_content_type"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_services_complete",
+      "parentId": "fld_services",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/services/{{ _.service_id }}/complete",
+      "name": "7. Completar Servicio",
+      "description": "Marcar un servicio como completado con detalles del trabajo realizado",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"workPerformed\": \"Se realizó mantenimiento preventivo completo de 3 unidades de aire acondicionado. Se limpiaron filtros, se verificó el estado del refrigerante y se ajustaron los componentes eléctricos.\",\n  \"timeSpent\": 180,\n  \"materialsUsed\": [\n    {\n      \"name\": \"Filtro de aire\",\n      \"quantity\": 3,\n      \"unit\": \"unidades\",\n      \"cost\": 25000\n    },\n    {\n      \"name\": \"Refrigerante R410A\",\n      \"quantity\": 1,\n      \"unit\": \"libra\",\n      \"cost\": 45000\n    }\n  ],\n  \"technicianNotes\": \"Todos los equipos funcionando correctamente. Se recomienda cambiar filtros cada 3 meses.\",\n  \"clientSignature\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==\",\n  \"images\": [\n    \"https://example.com/image1.jpg\",\n    \"https://example.com/image2.jpg\"\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_content_type"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_services_by_client",
+      "parentId": "fld_services",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/services/client/{{ _.client_id }}",
+      "name": "8. Servicios por Cliente",
+      "description": "Obtener servicios específicos de un cliente",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "id": "pair_page"
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "id": "pair_limit"
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_services_by_technician",
+      "parentId": "fld_services",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/services/technician/{{ _.technician_id }}",
+      "name": "9. Servicios por Técnico",
+      "description": "Obtener servicios asignados a un técnico específico",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "id": "pair_page"
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "id": "pair_limit"
+        }
+      ],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_services_delete",
+      "parentId": "fld_services",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "url": "{{ _.base_url }}/api/services/{{ _.service_id }}",
+      "name": "10. Eliminar Servicio",
+      "description": "Eliminar un servicio específico (solo administradores)",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}",
+          "id": "pair_auth"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1707912000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_services",
+      "parentId": "wrk_main",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "name": "FrioService - Services API",
+      "description": "Endpoints para gestión de servicios",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1707912000000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "wrk_main",
+      "parentId": null,
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "name": "FrioService Backend",
+      "description": "API completa para gestión de servicios de refrigeración",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "env_base",
+      "parentId": "wrk_main",
+      "modified": 1707912000000,
+      "created": 1707912000000,
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:3001",
+        "auth_token": "",
+        "service_id": "",
+        "client_id": "",
+        "technician_id": ""
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "base_url",
+          "auth_token",
+          "service_id",
+          "client_id",
+          "technician_id"
+        ]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1707912000000,
+      "_type": "environment"
+    }
+  ]
+}
