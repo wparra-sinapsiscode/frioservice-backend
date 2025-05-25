@@ -1,11 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError, ZodIssue } from 'zod';
 
+// Interfaz para el error formateado (sin cambios)
 interface FormattedZodError {
   field: string;
   message: string;
 }
 
+// Función para formatear el error de Zod (sin cambios)
 const formatZodError = (error: ZodError): FormattedZodError[] => {
   return error.errors.map((err: ZodIssue) => ({
     field: err.path.join('.'),
@@ -13,10 +15,15 @@ const formatZodError = (error: ZodError): FormattedZodError[] => {
   }));
 };
 
+
+// --- FUNCIONES CORREGIDAS ---
+
 export const validateBody = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      req.body = schema.parse(req.body);
+      const validatedData = schema.parse(req.body);
+      // Adjuntamos los datos validados a una nueva propiedad
+      (req as any).validatedBody = validatedData;
       next();
     } catch (error) {
       if (error instanceof ZodError) {
@@ -36,7 +43,9 @@ export const validateBody = (schema: ZodSchema) => {
 export const validateParams = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      req.params = schema.parse(req.params);
+      const validatedData = schema.parse(req.params);
+      // Adjuntamos los datos validados a una nueva propiedad
+      (req as any).validatedParams = validatedData;
       next();
     } catch (error) {
       if (error instanceof ZodError) {
@@ -56,7 +65,13 @@ export const validateParams = (schema: ZodSchema) => {
 export const validateQuery = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      req.query = schema.parse(req.query);
+      // *** LA CORRECCIÓN CLAVE ESTÁ AQUÍ ***
+      const validatedData = schema.parse(req.query);
+      
+      // No reasignamos req.query. Creamos una nueva propiedad.
+      // Usamos `(req as any)` para que TypeScript nos permita añadir una propiedad personalizada.
+      (req as any).validatedQuery = validatedData;
+      
       next();
     } catch (error) {
       if (error instanceof ZodError) {
