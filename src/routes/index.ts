@@ -1,3 +1,8 @@
 // Route exports
 export * from './authRoutes';
-// Additional routes will be added as they are created
+export * from './clientRoutes';
+export * from './technicianRoutes';
+export * from './serviceRoutes';
+export * from './equipmentRoutes';
+export * from './quoteRoutes';
+export * from './uploadRoutes';

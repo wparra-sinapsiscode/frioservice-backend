@@ -1,3 +1,7 @@
 // Service exports
 export * from './authService';
-// Additional services will be added as they are created
+export * from './clientService';
+export * from './technicianService';
+export * from './serviceService';
+export * from './equipmentService';
+export * from './quoteService';

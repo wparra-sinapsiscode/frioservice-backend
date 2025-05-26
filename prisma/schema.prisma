@@ -76,6 +76,9 @@ model Technician {
   isAvailable     Boolean  @default(true) @map("is_available")
   servicesCompleted Int    @default(0) @map("services_completed")
   averageTime     String?  @map("average_time")
+  firstName       String?  @map("first_name")
+  lastName        String?  @map("last_name")
+  name            String?  // Nombre completo o combinado
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 

@@ -1,3 +1,7 @@
 // Controller exports
 export * from './authController';
-// Additional controllers will be added as they are created
+export * from './clientController';
+export * from './technicianController';
+export * from './serviceController';
+export * from './equipmentController';
+export * from './quoteController';
