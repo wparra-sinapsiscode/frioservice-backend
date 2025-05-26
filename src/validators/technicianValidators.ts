@@ -48,6 +48,21 @@ export const CreateTechnicianSchema = z.object({
 
   name: z.string()
     .max(200, "El nombre completo no debe exceder 200 caracteres")
+    .optional(),
+
+  // Campos adicionales del perfil
+  rating: z.number()
+    .min(0, 'La calificación no puede ser negativa')
+    .max(5, 'La calificación no puede exceder 5')
+    .optional(),
+  
+  averageTime: z.string()
+    .max(50, 'El tiempo promedio no puede exceder 50 caracteres')
+    .optional(),
+  
+  servicesCompleted: z.number()
+    .int('Los servicios completados deben ser un número entero')
+    .min(0, 'Los servicios completados no pueden ser negativos')
     .optional()
 
 }).superRefine((data, ctx) => {

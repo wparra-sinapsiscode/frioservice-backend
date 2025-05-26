@@ -8,6 +8,8 @@ export class TechnicianController {
    */
   static async create(req: Request, res: Response): Promise<void> {
     try {
+      console.log("🚨 [CONTROLLER] req.body COMPLETO:", JSON.stringify(req.body, null, 2));
+      
       const {
         username,
         password,
@@ -18,8 +20,15 @@ export class TechnicianController {
         isAvailable,
         firstName,
         lastName,
-        name
+        name,
+        rating,
+        averageTime,
+        servicesCompleted
       } = req.body;
+      
+      console.log("🚨 [CONTROLLER] RATING extraído:", rating, "tipo:", typeof rating);
+      console.log("🚨 [CONTROLLER] AVERAGETIME extraído:", averageTime, "tipo:", typeof averageTime);
+      console.log("🚨 [CONTROLLER] SERVICESCOMPLETED extraído:", servicesCompleted, "tipo:", typeof servicesCompleted);
 
       // Construimos el payload para el nuevo método del servicio
       const payload: AdminCreateTechnicianAndUserPayload = {
@@ -35,9 +44,14 @@ export class TechnicianController {
           isAvailable: isAvailable !== undefined ? isAvailable : true,
           firstName: firstName,
           lastName: lastName,
-          name: name
+          name: name,
+          rating: rating,
+          averageTime: averageTime,
+          servicesCompleted: servicesCompleted
         }
       };
+      
+      console.log("🚨 [CONTROLLER] PAYLOAD COMPLETO:", JSON.stringify(payload, null, 2));
 
       // Validaciones básicas (Zod es el principal validador a través del middleware)
       if (!payload.newUser.username || !payload.newUser.email || !payload.newUser.password) {

@@ -180,6 +180,13 @@ export class AuthService {
         throw new Error('Credenciales inválidas');
       }
 
+      // Verificar estado del cliente si es un usuario CLIENT
+      if (user.role === UserRole.CLIENT && user.client) {
+        if (user.client.status === 'INACTIVE') {
+          throw new Error('Su cuenta se encuentra inactiva. Contacte al administrador para más información.');
+        }
+      }
+
       // Generar token
       const token = generateToken({
         userId: user.id,

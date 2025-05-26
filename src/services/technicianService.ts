@@ -75,6 +75,7 @@ export interface AdminCreateTechnicianAndUserPayload {
     rating?: number; // Default 0.0
     isAvailable?: boolean; // Default true
     averageTime?: string;
+    servicesCompleted?: number;
     firstName?: string;
     lastName?: string;
     name?: string;
@@ -99,6 +100,9 @@ export class TechnicianService {
 
       const hashedPassword = await hashPassword(payload.newUser.password);
 
+      console.log("🚨 [SERVICE] PAYLOAD RECIBIDO:", JSON.stringify(payload, null, 2));
+      console.log("🚨 [SERVICE] RATING en payload:", payload.technicianProfile.rating, "tipo:", typeof payload.technicianProfile.rating);
+      console.log("🚨 [SERVICE] AVERAGETIME en payload:", payload.technicianProfile.averageTime, "tipo:", typeof payload.technicianProfile.averageTime);
       console.log(">>> [SERVICE] Creando nuevo usuario para técnico con datos:", payload.newUser.username, payload.newUser.email);
       
       const result = await prisma.$transaction(async (tx) => {
@@ -120,15 +124,17 @@ export class TechnicianService {
           specialty: payload.technicianProfile.specialty.trim(),
           experienceYears: payload.technicianProfile.experienceYears,
           phone: payload.technicianProfile.phone || null,
-          rating: payload.technicianProfile.rating ?? 0.0,
+          rating: payload.technicianProfile.rating !== undefined ? payload.technicianProfile.rating : 0.0,
           isAvailable: payload.technicianProfile.isAvailable ?? true,
-          servicesCompleted: 0, // Valor por defecto
+          servicesCompleted: payload.technicianProfile.servicesCompleted !== undefined ? payload.technicianProfile.servicesCompleted : 0,
           averageTime: payload.technicianProfile.averageTime || null,
           firstName: payload.technicianProfile.firstName || null,
           lastName: payload.technicianProfile.lastName || null,
           name: payload.technicianProfile.name || null,
         };
 
+        console.log("🚨 [SERVICE] DATOS PARA DB - RATING:", technicianDataForDb.rating, "tipo:", typeof technicianDataForDb.rating);
+        console.log("🚨 [SERVICE] DATOS PARA DB - AVERAGETIME:", technicianDataForDb.averageTime, "tipo:", typeof technicianDataForDb.averageTime);
         console.log(">>> [SERVICE] Creando perfil de técnico con datos:", JSON.stringify(technicianDataForDb, null, 2));
         
         // 3. Crear el perfil del técnico
