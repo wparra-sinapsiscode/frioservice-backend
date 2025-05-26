@@ -1,9 +1,9 @@
-/*
-  Warnings:
+-- CreateEnum
+CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'TECHNICIAN', 'CLIENT');
 
-  - The `status` column on the `clients` table would be dropped and recreated. This will lead to data loss if there is data in the column.
+-- CreateEnum
+CREATE TYPE "ClientType" AS ENUM ('PERSONAL', 'COMPANY');
 
-*/
 -- CreateEnum
 CREATE TYPE "ClientStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'BLOCKED');
 
@@ -22,19 +22,64 @@ CREATE TYPE "EquipmentStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'MAINTENANCE', 'BRO
 -- CreateEnum
 CREATE TYPE "QuoteStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'EXPIRED');
 
--- AlterTable
-ALTER TABLE "clients" ADD COLUMN     "business_registration" TEXT,
-ADD COLUMN     "discount" DOUBLE PRECISION DEFAULT 0.0,
-ADD COLUMN     "email" TEXT,
-ADD COLUMN     "emergency_contact" TEXT,
-ADD COLUMN     "is_vip" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "next_service_date" TIMESTAMP(3),
-ADD COLUMN     "notes" TEXT,
-ADD COLUMN     "postal_code" TEXT,
-ADD COLUMN     "preferred_schedule" TEXT,
-ADD COLUMN     "total_services" INTEGER NOT NULL DEFAULT 0,
-DROP COLUMN "status",
-ADD COLUMN     "status" "ClientStatus" NOT NULL DEFAULT 'ACTIVE';
+-- CreateTable
+CREATE TABLE "users" (
+    "id" TEXT NOT NULL,
+    "username" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "password_hash" TEXT NOT NULL,
+    "role" "UserRole" NOT NULL DEFAULT 'CLIENT',
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "clients" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "company_name" TEXT,
+    "contact_person" TEXT,
+    "business_registration" TEXT,
+    "phone" TEXT,
+    "email" TEXT,
+    "emergency_contact" TEXT,
+    "address" TEXT,
+    "city" TEXT,
+    "district" TEXT,
+    "postal_code" TEXT,
+    "client_type" "ClientType" NOT NULL DEFAULT 'PERSONAL',
+    "status" "ClientStatus" NOT NULL DEFAULT 'ACTIVE',
+    "preferred_schedule" TEXT,
+    "next_service_date" TIMESTAMP(3),
+    "total_services" INTEGER NOT NULL DEFAULT 0,
+    "notes" TEXT,
+    "is_vip" BOOLEAN NOT NULL DEFAULT false,
+    "discount" DOUBLE PRECISION DEFAULT 0.0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "clients_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "technicians" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "specialty" TEXT NOT NULL,
+    "experience_years" INTEGER NOT NULL,
+    "rating" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "phone" TEXT,
+    "is_available" BOOLEAN NOT NULL DEFAULT true,
+    "services_completed" INTEGER NOT NULL DEFAULT 0,
+    "average_time" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "technicians_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "services" (
@@ -106,6 +151,24 @@ CREATE TABLE "quotes" (
 
     CONSTRAINT "quotes_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_username_key" ON "users"("username");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "clients_user_id_key" ON "clients"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "technicians_user_id_key" ON "technicians"("user_id");
+
+-- AddForeignKey
+ALTER TABLE "clients" ADD CONSTRAINT "clients_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "technicians" ADD CONSTRAINT "technicians_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "services" ADD CONSTRAINT "services_client_id_fkey" FOREIGN KEY ("client_id") REFERENCES "clients"("id") ON DELETE CASCADE ON UPDATE CASCADE;

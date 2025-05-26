@@ -1,10 +1,11 @@
-import { PrismaClient, ClientType, ClientStatus, Client } from '@prisma/client';
+import { PrismaClient, ClientType, ClientStatus, Client, UserRole } from '@prisma/client';
+import { hashPassword } from '../utils/auth'; // Ruta que confirmaste para hashPassword
 
 const prisma = new PrismaClient();
 
-// Types for client operations
+// Tipos originales para operaciones de cliente
 export interface CreateClientData {
-  userId: string;
+  userId: string; // Se refiere al ID de un usuario existente con rol CLIENTE para este método
   companyName?: string;
   contactPerson?: string;
   businessRegistration?: string;
@@ -19,6 +20,12 @@ export interface CreateClientData {
   notes?: string;
   isVip?: boolean;
   discount?: number;
+  // Campos que tu frontend podría estar enviando y que tu modelo Client podría tener
+  name?: string;
+  ruc?: string;
+  dni?: string;
+  sector?: string;
+  lastName?: string;
 }
 
 export interface UpdateClientData {
@@ -38,6 +45,12 @@ export interface UpdateClientData {
   notes?: string;
   isVip?: boolean;
   discount?: number;
+  // Campos que tu frontend podría estar enviando y que tu modelo Client podría tener
+  name?: string;
+  ruc?: string;
+  dni?: string;
+  sector?: string;
+  lastName?: string;
 }
 
 export interface ClientFilters {
@@ -45,7 +58,7 @@ export interface ClientFilters {
   clientType?: ClientType;
   city?: string;
   isVip?: boolean;
-  search?: string; // For searching by name, email, or company
+  search?: string;
 }
 
 export interface ClientWithRelations extends Client {
@@ -54,6 +67,7 @@ export interface ClientWithRelations extends Client {
     username: string;
     email: string;
     isActive: boolean;
+    role: UserRole; // Añadido para consistencia
   };
   services: Array<{
     id: string;
@@ -75,65 +89,205 @@ export interface ClientWithRelations extends Client {
   };
 }
 
+// --- NUEVA INTERFAZ AÑADIDA ---
+// Payload para cuando un administrador crea un cliente y su usuario asociado
+export interface AdminCreateClientAndUserPayload {
+  newUser: {
+    username: string;
+    email: string;
+    password?: string; // Obligatorio para la creación
+  };
+  clientProfile: {
+    clientType: ClientType; // 'COMPANY' o 'PERSONAL'
+    companyName?: string;   // Si es COMPANY
+    firstName?: string;     // Nombre si es PERSONAL
+    lastName?: string;      // Apellido si es PERSONAL
+    name?: string;          // Nombre general que el frontend podría enviar
+    ruc?: string;
+    dni?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    district?: string;
+    sector?: string;
+    email?: string; // Email de contacto del perfil
+    contactPerson?: string;
+    businessRegistration?: string;
+    emergencyContact?: string;
+    postalCode?: string;
+    preferredSchedule?: string;
+    notes?: string;
+    isVip?: boolean;
+    discount?: number;
+  };
+}
+// --- FIN DE LA NUEVA INTERFAZ ---
+
 export class ClientService {
+  // --- MÉTODO NUEVO AÑADIDO ---
   /**
-   * Create a new client profile
+   * Crea un nuevo cliente Y su cuenta de usuario. Usado por un administrador.
    */
-  static async createClient(data: CreateClientData): Promise<Client> {
+  static async adminCreatesClientWithUser(payload: AdminCreateClientAndUserPayload): Promise<ClientWithRelations> {
     try {
-      // Validate that user exists and is a CLIENT
-      const user = await prisma.user.findUnique({
-        where: { id: data.userId },
-        include: { client: true }
+      if (!payload.newUser.password) {
+        throw new Error('La contraseña es requerida para el nuevo usuario del cliente.');
+      }
+      const hashedPassword = await hashPassword(payload.newUser.password);
+
+      const newClientUser = await prisma.user.create({
+        data: {
+          username: payload.newUser.username,
+          email: payload.newUser.email,
+          passwordHash: hashedPassword, // Asumiendo que tu campo en schema.prisma se llama 'passwordHash'
+          role: UserRole.CLIENT,
+          isActive: true,
+        }
       });
 
-      if (!user) {
-        throw new Error('Usuario no encontrado');
+      const clientDataForDb: any = {
+        userId: newClientUser.id,
+        clientType: payload.clientProfile.clientType,
+        phone: payload.clientProfile.phone,
+        email: payload.clientProfile.email || payload.newUser.email,
+        address: payload.clientProfile.address,
+        city: payload.clientProfile.city,
+        district: payload.clientProfile.district,
+        status: ClientStatus.ACTIVE,
+        // contactPerson: payload.clientProfile.contactPerson ?? null, // Se manejará abajo
+        businessRegistration: payload.clientProfile.businessRegistration ?? null, // Se manejará abajo
+        emergencyContact: payload.clientProfile.emergencyContact ?? null,
+        postalCode: payload.clientProfile.postalCode ?? null,
+        preferredSchedule: payload.clientProfile.preferredSchedule ?? null,
+        notes: payload.clientProfile.notes ?? null,
+        isVip: payload.clientProfile.isVip ?? false,
+        discount: payload.clientProfile.discount ?? 0.0,
+        // ELIMINAMOS: name: payload.clientProfile.name ?? null, 
+      };
+
+      if (payload.clientProfile.clientType === ClientType.COMPANY) {
+        // Para empresas, el nombre va a 'companyName'
+        clientDataForDb.companyName = payload.clientProfile.companyName || payload.clientProfile.name;
+        clientDataForDb.businessRegistration = payload.clientProfile.ruc;
+        clientDataForDb.sector = payload.clientProfile.sector;
+        // Puedes establecer contactPerson si viene en el payload, sino será null
+        clientDataForDb.contactPerson = payload.clientProfile.contactPerson ?? null;
+
+      } else { // PERSONAL
+        // Para personas, el nombre completo o el nombre principal va a 'contactPerson'
+        // y no usamos 'companyName'.
+        let fullName = '';
+        if (payload.clientProfile.firstName || payload.clientProfile.lastName) {
+          fullName = `${payload.clientProfile.firstName || ''} ${payload.clientProfile.lastName || ''}`.trim();
+        } else if (payload.clientProfile.name) {
+          fullName = payload.clientProfile.name;
+        }
+        clientDataForDb.contactPerson = fullName || payload.clientProfile.contactPerson || null;
+
+        clientDataForDb.businessRegistration = payload.clientProfile.dni;
+        // Asegúrate de que companyName sea null o no se defina para clientes personales si no aplica
+        clientDataForDb.companyName = null;
       }
 
-      if (user.client) {
-        throw new Error('El usuario ya tiene un perfil de cliente');
-      }
-
-      if (user.role !== 'CLIENT') {
-        throw new Error('El usuario debe tener rol de cliente');
-      }
-
-      // Create client profile
       const client = await prisma.client.create({
-        data: {
-          userId: data.userId,
-          companyName: data.companyName ?? null,
-          contactPerson: data.contactPerson ?? null,
-          businessRegistration: data.businessRegistration ?? null,
-          phone: data.phone ?? null,
-          email: data.email ?? user.email,
-          emergencyContact: data.emergencyContact ?? null,
-          address: data.address ?? null,
-          city: data.city ?? null,
-          postalCode: data.postalCode ?? null,
-          clientType: data.clientType,
-          preferredSchedule: data.preferredSchedule ?? null,
-          notes: data.notes ?? null,
-          isVip: data.isVip ?? false,
-          discount: data.discount ?? 0.0
-        },
+        data: clientDataForDb,
         include: {
           user: {
             select: {
               id: true,
               username: true,
               email: true,
-              isActive: true
+              isActive: true,
+              role: true
+            }
+          },
+          _count: { select: { services: true, equipment: true, quotes: true } }
+        }
+      });
+      return client as unknown as ClientWithRelations;
+    } catch (error: any) {
+      console.error('Error en adminCreatesClientWithUser:', error);
+      if (error.code === 'P2002' && error.meta?.target) {
+        const field = (error.meta.target as string[]).join(', ');
+        if (field.includes('username')) throw new Error(`El nombre de usuario '${payload.newUser.username}' ya existe.`);
+        if (field.includes('email')) throw new Error(`El email '${payload.newUser.email}' ya está registrado.`);
+        throw new Error(`El campo '${field}' ya existe y debe ser único.`);
+      }
+      throw new Error('Error al crear el cliente y su usuario: ' + (error.message || error));
+    }
+  }
+  // --- FIN DEL MÉTODO NUEVO ---
+
+  /**
+   * Create a new client profile (Método Original)
+   * Este método asume que el userId proporcionado YA ES UN USUARIO CON ROL CLIENTE.
+   */
+  static async createClient(data: CreateClientData): Promise<Client> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: data.userId },
+        include: { client: true }
+      });
+
+      if (!user) {
+        throw new Error('Usuario no encontrado para asociar al perfil.');
+      }
+      if (user.client) {
+        throw new Error('El usuario proporcionado ya tiene un perfil de cliente asociado.');
+      }
+      if (user.role !== UserRole.CLIENT) {
+        throw new Error('El usuario que se asocia al perfil debe tener rol de CLIENTE.');
+      }
+
+      // Aseguramos que los datos para Prisma sean correctos, incluyendo el status por defecto
+      const prismaData: any = {
+        userId: data.userId,
+        companyName: data.companyName ?? null,
+        contactPerson: data.contactPerson ?? null,
+        businessRegistration: data.businessRegistration ?? null,
+        phone: data.phone ?? null,
+        email: data.email ?? user.email,
+        emergencyContact: data.emergencyContact ?? null,
+        address: data.address ?? null,
+        city: data.city ?? null,
+        postalCode: data.postalCode ?? null,
+        clientType: data.clientType,
+        preferredSchedule: data.preferredSchedule ?? null,
+        notes: data.notes ?? null,
+        isVip: data.isVip ?? false,
+        discount: data.discount ?? 0.0,
+        status: ClientStatus.ACTIVE, // Estado por defecto si no se especifica
+      };
+
+      // Lógica para 'name', 'ruc', 'dni', 'sector', 'lastName' basada en clientType
+      if (data.clientType === ClientType.COMPANY) {
+        prismaData.name = data.companyName || data.name; // Prioriza companyName, usa name si está
+        prismaData.ruc = data.ruc;
+        prismaData.sector = data.sector;
+      } else { // PERSONAL
+        prismaData.name = data.name || data.contactPerson; // Usa name (para nombre) o contactPerson
+        prismaData.dni = data.dni;
+        prismaData.lastName = data.lastName;
+      }
+
+      const client = await prisma.client.create({
+        data: prismaData,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              isActive: true,
+              role: true
             }
           }
         }
       });
-
       return client;
-    } catch (error) {
-      console.error('Error creating client:', error);
-      throw error;
+    } catch (error: any) {
+      console.error('Error en el método original createClient:', error);
+      throw new Error('Fallo al crear el perfil de cliente: ' + error.message);
     }
   }
 
@@ -147,62 +301,34 @@ export class ClientService {
   ) {
     try {
       const skip = (page - 1) * limit;
-      
-      // Build where clause
       const where: any = {};
 
       if (filters.status) {
         where.status = filters.status;
       }
-
       if (filters.clientType) {
         where.clientType = filters.clientType;
       }
-
       if (filters.city) {
         where.city = {
           contains: filters.city,
           mode: 'insensitive'
         };
       }
-
       if (filters.isVip !== undefined) {
         where.isVip = filters.isVip;
       }
-
       if (filters.search) {
         where.OR = [
-          {
-            companyName: {
-              contains: filters.search,
-              mode: 'insensitive'
-            }
-          },
-          {
-            contactPerson: {
-              contains: filters.search,
-              mode: 'insensitive'
-            }
-          },
-          {
-            email: {
-              contains: filters.search,
-              mode: 'insensitive'
-            }
-          },
-          {
-            user: {
-              username: {
-                contains: filters.search,
-                mode: 'insensitive'
-              }
-            }
-          }
+          { companyName: { contains: filters.search, mode: 'insensitive' } },
+          { contactPerson: { contains: filters.search, mode: 'insensitive' } },
+          { name: { contains: filters.search, mode: 'insensitive' } },
+          { email: { contains: filters.search, mode: 'insensitive' } },
+          { user: { username: { contains: filters.search, mode: 'insensitive' } } }
         ];
       }
 
-      // Get clients with relations
-      const [clients, totalClients] = await Promise.all([
+      const [clientsFromDb, totalClients] = await Promise.all([
         prisma.client.findMany({
           where,
           skip,
@@ -213,7 +339,8 @@ export class ClientService {
                 id: true,
                 username: true,
                 email: true,
-                isActive: true
+                isActive: true,
+                role: true
               }
             },
             services: {
@@ -224,10 +351,8 @@ export class ClientService {
                 scheduledDate: true,
                 type: true
               },
-              orderBy: {
-                scheduledDate: 'desc'
-              },
-              take: 5 // Latest 5 services
+              orderBy: { scheduledDate: 'desc' },
+              take: 5
             },
             equipment: {
               select: {
@@ -236,7 +361,7 @@ export class ClientService {
                 type: true,
                 status: true
               },
-              take: 5 // Latest 5 equipment
+              take: 5
             },
             _count: {
               select: {
@@ -246,9 +371,7 @@ export class ClientService {
               }
             }
           },
-          orderBy: {
-            createdAt: 'desc'
-          }
+          orderBy: { createdAt: 'desc' }
         }),
         prisma.client.count({ where })
       ]);
@@ -256,7 +379,7 @@ export class ClientService {
       const totalPages = Math.ceil(totalClients / limit);
 
       return {
-        clients,
+        clients: clientsFromDb as ClientWithRelations[],
         totalClients,
         totalPages,
         currentPage: page,
@@ -282,7 +405,8 @@ export class ClientService {
               id: true,
               username: true,
               email: true,
-              isActive: true
+              isActive: true,
+              role: true
             }
           },
           services: {
@@ -295,9 +419,7 @@ export class ClientService {
               priority: true,
               estimatedDuration: true
             },
-            orderBy: {
-              scheduledDate: 'desc'
-            }
+            orderBy: { scheduledDate: 'desc' }
           },
           equipment: {
             select: {
@@ -317,9 +439,7 @@ export class ClientService {
               status: true,
               createdAt: true
             },
-            orderBy: {
-              createdAt: 'desc'
-            }
+            orderBy: { createdAt: 'desc' }
           },
           _count: {
             select: {
@@ -330,7 +450,6 @@ export class ClientService {
           }
         }
       });
-
       return client as ClientWithRelations | null;
     } catch (error) {
       console.error('Error fetching client by ID:', error);
@@ -351,7 +470,8 @@ export class ClientService {
               id: true,
               username: true,
               email: true,
-              isActive: true
+              isActive: true,
+              role: true
             }
           },
           services: {
@@ -362,9 +482,7 @@ export class ClientService {
               scheduledDate: true,
               type: true
             },
-            orderBy: {
-              scheduledDate: 'desc'
-            },
+            orderBy: { scheduledDate: 'desc' },
             take: 10
           },
           equipment: {
@@ -384,7 +502,6 @@ export class ClientService {
           }
         }
       });
-
       return client as ClientWithRelations | null;
     } catch (error) {
       console.error('Error fetching client by user ID:', error);
@@ -405,24 +522,21 @@ export class ClientService {
         return null;
       }
 
-      // Update total services count if needed
-      const updateData: any = { ...data };
-      
       const client = await prisma.client.update({
         where: { id },
-        data: updateData,
+        data: data,
         include: {
           user: {
             select: {
               id: true,
               username: true,
               email: true,
-              isActive: true
+              isActive: true,
+              role: true
             }
           }
         }
       });
-
       return client;
     } catch (error) {
       console.error('Error updating client:', error);
@@ -443,14 +557,12 @@ export class ClientService {
         return false;
       }
 
-      // Soft delete by updating status
       await prisma.client.update({
         where: { id },
         data: {
           status: ClientStatus.INACTIVE
         }
       });
-
       return true;
     } catch (error) {
       console.error('Error deleting client:', error);
@@ -463,7 +575,7 @@ export class ClientService {
    */
   static async getClientStats(clientId: string) {
     try {
-      const [client, services, equipment, quotes] = await Promise.all([
+      const [clientData, services, equipmentCount, quotes] = await Promise.all([
         prisma.client.findUnique({
           where: { id: clientId },
           select: {
@@ -491,8 +603,8 @@ export class ClientService {
         })
       ]);
 
-      if (!client) {
-        throw new Error('Cliente no encontrado');
+      if (!clientData) {
+        throw new Error('Cliente no encontrado para estadísticas.');
       }
 
       const serviceStats = services.reduce((acc, service) => {
@@ -506,10 +618,10 @@ export class ClientService {
       }, {} as Record<string, number>);
 
       return {
-        totalServices: client.totalServices,
-        equipmentCount: equipment,
-        nextServiceDate: client.nextServiceDate,
-        memberSince: client.createdAt,
+        totalServices: clientData.totalServices,
+        equipmentCount: equipmentCount,
+        nextServiceDate: clientData.nextServiceDate,
+        memberSince: clientData.createdAt,
         servicesByStatus: serviceStats,
         quotesByStatus: quoteStats
       };

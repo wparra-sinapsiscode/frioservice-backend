@@ -1,101 +1,145 @@
-import { z } from 'zod';
+// En: src/validators/clientValidators.ts
 
-// Enums para validación
+import { z } from 'zod';
+import { ClientType as PrismaClientType, ClientStatus as PrismaClientStatus } from '@prisma/client'; // Para usar los enums de Prisma
+
+// Enums para validación (los que ya tenías)
 export const ClientTypeSchema = z.enum([
-  'PERSONAL',
-  'COMPANY'
+  PrismaClientType.PERSONAL, // Usando el enum de Prisma
+  PrismaClientType.COMPANY
 ]);
 
 export const ClientStatusSchema = z.enum([
-  'ACTIVE',
-  'INACTIVE',
-  'SUSPENDED',
-  'BLOCKED'
+  PrismaClientStatus.ACTIVE,
+  PrismaClientStatus.INACTIVE,
+  PrismaClientStatus.SUSPENDED,
+  PrismaClientStatus.BLOCKED
 ]);
 
-// Schema para crear un cliente
+// --- CREATE CLIENT SCHEMA MODIFICADO ---
 export const CreateClientSchema = z.object({
-  userId: z.string()
-    .min(1, 'El ID del usuario es requerido'),
+  // --- Datos para el NUEVO USUARIO del Cliente ---
+  username: z.string()
+    .min(3, 'El nombre de usuario para el cliente debe tener al menos 3 caracteres.')
+    .max(50, 'El nombre de usuario no puede exceder 50 caracteres.'),
   
-  companyName: z.string()
-    .min(1, 'El nombre de la empresa es requerido')
-    .max(200, 'El nombre de la empresa no puede exceder 200 caracteres')
-    .optional(),
+  password: z.string()
+    .min(6, 'La contraseña para el cliente debe tener al menos 6 caracteres.')
+    .max(100, 'La contraseña no puede exceder 100 caracteres.'),
   
-  contactPerson: z.string()
-    .min(1, 'El nombre de la persona de contacto es requerido')
-    .max(100, 'El nombre de contacto no puede exceder 100 caracteres')
-    .optional(),
-  
-  businessRegistration: z.string()
-    .min(8, 'El número de registro debe tener al menos 8 caracteres')
-    .max(20, 'El número de registro no puede exceder 20 caracteres')
-    .optional(),
-  
+  // El email se usa tanto para el nuevo usuario como para el contacto del perfil
+  email: z.string()
+    .email('Formato de email inválido.')
+    .max(100, 'El email no puede exceder 100 caracteres.'),
+
+  // --- Datos del Perfil del Cliente ---
+  clientType: ClientTypeSchema, // 'COMPANY' o 'PERSONAL'
+
+  // El userId del administrador que realiza la acción. Tu frontend lo envía.
+  userId: z.string().min(1, 'El ID del usuario (administrador) es requerido.'), 
+
+  // Campos de perfil comunes (ajusta .optional() o .min(1) según tus reglas de negocio)
   phone: z.string()
     .regex(/^\+?[\d\s-()]+$/, 'Formato de teléfono inválido')
     .min(7, 'El teléfono debe tener al menos 7 dígitos')
     .max(20, 'El teléfono no puede exceder 20 caracteres')
-    .optional(),
-  
-  email: z.string()
-    .email('Formato de email inválido')
-    .max(100, 'El email no puede exceder 100 caracteres')
-    .optional(),
-  
-  emergencyContact: z.string()
-    .regex(/^\+?[\d\s-()]+$/, 'Formato de contacto de emergencia inválido')
-    .min(7, 'El contacto de emergencia debe tener al menos 7 dígitos')
-    .max(20, 'El contacto de emergencia no puede exceder 20 caracteres')
-    .optional(),
+    .optional(), // O .min(1, 'El teléfono es requerido')
   
   address: z.string()
-    .min(1, 'La dirección es requerida')
+    .min(1, 'La dirección es requerida.')
     .max(300, 'La dirección no puede exceder 300 caracteres')
-    .optional(),
-  
+    .optional(), // O requerida
+
   city: z.string()
-    .min(1, 'La ciudad es requerida')
+    .min(1, 'La ciudad es requerida.')
     .max(100, 'La ciudad no puede exceder 100 caracteres')
+    .optional(), // O requerida
+
+  district: z.string()
+    .min(1, 'El distrito es requerido.')
+    .max(100, 'El distrito no puede exceder 100 caracteres')
+    .optional(), // O requerido
+  
+  // Campos condicionales (nombre/razón social, ruc/dni, etc.)
+  // El frontend envía companyName O (firstName + lastName)
+  // y ruc O dni. Lo validaremos con .superRefine
+  companyName: z.string()
+    .max(200, 'El nombre de la empresa no puede exceder 200 caracteres')
     .optional(),
   
-  postalCode: z.string()
-    .min(3, 'El código postal debe tener al menos 3 caracteres')
-    .max(10, 'El código postal no puede exceder 10 caracteres')
+  firstName: z.string() // El frontend lo envía como 'name' si es personal
+    .max(100, 'El nombre no puede exceder 100 caracteres')
+    .optional(),
+
+  lastName: z.string()
+    .max(100, 'El apellido no puede exceder 100 caracteres')
+    .optional(),
+
+  name: z.string() // Campo 'name' general que el frontend usa para 'Razón Social' o 'Nombres'
+    .max(200, "El nombre/razón social no debe exceder 200 caracteres")
+    .optional(), // Hacemos opcional aquí porque lo validaremos en superRefine
+
+  ruc: z.string()
+    .length(11, 'El RUC debe tener 11 dígitos.')
+    .regex(/^\d+$/, "El RUC solo debe contener números.")
     .optional(),
   
-  clientType: ClientTypeSchema,
-  
-  preferredSchedule: z.enum(['morning', 'afternoon', 'evening', 'flexible'])
+  dni: z.string()
+    .length(8, 'El DNI debe tener 8 dígitos.')
+    .regex(/^\d+$/, "El DNI solo debe contener números.")
     .optional(),
   
-  notes: z.string()
-    .max(1000, 'Las notas no pueden exceder 1000 caracteres')
+  sector: z.string()
+    .max(100, 'El sector no puede exceder 100 caracteres')
     .optional(),
-  
-  isVip: z.boolean()
-    .default(false)
-    .optional(),
-  
-  discount: z.number()
-    .min(0, 'El descuento no puede ser negativo')
-    .max(100, 'El descuento no puede exceder 100%')
-    .default(0)
-    .optional()
-}).refine((data) => {
-  // Si es una empresa, companyName es requerido
-  if (data.clientType === 'COMPANY' && !data.companyName) {
-    return false;
+
+  // Otros campos de perfil que ya tenías (todos opcionales aquí, ajusta si son requeridos)
+  contactPerson: z.string().max(100).optional(),
+  businessRegistration: z.string().max(20).optional(),
+  emergencyContact: z.string().max(20).optional(),
+  postalCode: z.string().max(10).optional(),
+  preferredSchedule: z.enum(['morning', 'afternoon', 'evening', 'flexible']).optional(),
+  notes: z.string().max(1000).optional(),
+  isVip: z.boolean().default(false).optional(),
+  discount: z.number().min(0).max(100).default(0).optional()
+
+}).superRefine((data, ctx) => {
+  if (data.clientType === 'COMPANY') {
+    // Para empresas, 'name' (Razón Social) o 'companyName' deben estar presentes.
+    // El frontend envía 'companyName' y también el input 'name' se usa para Razón Social.
+    // Priorizaremos 'companyName' si viene, sino 'name'.
+    if (!data.companyName && !data.name) { 
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Para empresas, se requiere 'companyName' (Razón Social).",
+        path: ['companyName'], // o ['name'] si es el campo que usa el form
+      });
+    }
+    if (!data.ruc) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El RUC es requerido para clientes de tipo EMPRESA.",
+        path: ['ruc'],
+      });
+    }
+  } else if (data.clientType === 'PERSONAL') {
+    // Para personas, 'firstName' o 'name' deben estar presentes.
+    // El frontend envía 'firstName' y también el input 'name' se usa para Nombres.
+    if (!data.firstName && !data.name) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Para personas, se requiere 'firstName' (Nombres).",
+        path: ['firstName'], // o ['name'] si es el campo que usa el form
+      });
+    }
+    if (!data.dni) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El DNI es requerido para clientes de tipo PERSONAL.",
+        path: ['dni'],
+      });
+    }
   }
-  // Si es personal, contactPerson es requerido
-  if (data.clientType === 'PERSONAL' && !data.contactPerson) {
-    return false;
-  }
-  return true;
-}, {
-  message: 'Para empresas se requiere nombre de empresa, para personas se requiere nombre de contacto',
-  path: ['clientType']
 });
 
 // Schema para actualizar un cliente

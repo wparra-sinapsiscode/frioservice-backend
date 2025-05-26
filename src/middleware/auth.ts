@@ -66,6 +66,16 @@ export const authorize = (...allowedRoles: UserRole[]) => {
         return;
       }
 
+       // --- AÑADE ESTOS CONSOLE.LOGS PARA DEPURAR ---
+      console.log('@@@ AUTHORIZE MIDDLEWARE @@@');
+      console.log('req.user.role:', req.user.role);
+      console.log('typeof req.user.role:', typeof req.user.role);
+      console.log('allowedRoles:', allowedRoles);
+      console.log('allowedRoles[0]:', allowedRoles[0]);
+      console.log('typeof allowedRoles[0]:', typeof allowedRoles[0]);
+      console.log('Comparison result (includes):', allowedRoles.includes(req.user.role));
+      // --------------------------------------------
+
       // Check if user has required role
       if (!allowedRoles.includes(req.user.role)) {
         res.status(403).json({

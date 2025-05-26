@@ -1,3 +1,4 @@
+// En: src/routes/clientRoutes.ts
 import { Router } from 'express';
 import { ClientController } from '../controllers/clientController';
 import { authenticate, authorize } from '../middleware/auth';
@@ -12,24 +13,27 @@ import {
   ClientIdSchema,
   UserIdSchema,
   ClientTypeParamSchema
-} from '../validators/clientValidators';
+} from '../validators/clientValidators'; // Asegúrate que la ruta a este archivo sea correcta
 
 const router = Router();
 
-// RUTA DE PRUEBA TEMPORAL
+// --- CAMBIO CLAVE: Aplicar 'authenticate' a TODAS las rutas de este router ---
+// Todas las rutas definidas DESPUÉS de esta línea requerirán un token válido.
+router.use(authenticate);
+// --------------------------------------------------------------------------
+
+// RUTA DE PRUEBA TEMPORAL (puede quedarse o quitarse)
 router.post('/test-crear', (_req, res) => {
   console.log('@@@ RUTA DE PRUEBA POST /api/clients/test-crear ALCANZADA @@@');
   res.status(200).json({ message: 'Ruta de prueba POST en clientRoutes alcanzada!' });
 });
 
-// Todas las rutas requieren autenticación
-router.use(authenticate);
-
 // Rutas principales de clientes
+// Ahora 'authenticate' ya se habrá ejecutado y req.user debería estar disponible
 router.post('/',
-  authorize('ADMIN'),
-  validateBody(CreateClientSchema),
-  ClientController.create
+  authorize('ADMIN'),             // Verifica que req.user.role sea ADMIN
+  validateBody(CreateClientSchema), // Valida el cuerpo de la petición
+  ClientController.create         // Ejecuta la lógica de creación
 );
 
 router.get('/',
@@ -57,8 +61,9 @@ router.get('/type/:clientType',
   ClientController.getByType
 );
 
+// Para esta ruta, tanto ADMIN como CLIENT pueden acceder, pero 'authenticate' ya puso req.user
 router.get('/profile/:userId',
-  authorize('ADMIN', 'CLIENT'),
+  authorize('ADMIN', 'CLIENT'), 
   validateParams(UserIdSchema),
   ClientController.getByUserId
 );

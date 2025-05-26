@@ -1,85 +1,113 @@
 import { Request, Response } from "express";
-import { ClientService } from "../services/clientService";
+import { ClientService, AdminCreateClientAndUserPayload } from "../services/clientService"; 
 import { ClientType, ClientStatus } from "@prisma/client";
 
 export class ClientController {
   /**
-   * Create a new client profile
+   * Crea un nuevo cliente Y su cuenta de usuario (cuando un Admin lo hace).
    * POST /api/clients
    */
   static async create(req: Request, res: Response): Promise<void> {
     try {
+      // Extraemos todos los datos necesarios del req.body que envía el frontend
       const {
-        userId,
+        username, 
+        password, 
+        email,    
+        clientType, 
         companyName,
-        contactPerson,
-        businessRegistration,
+        firstName,  
+        lastName,   
+        name,       
+        ruc,
+        dni,
         phone,
-        email,
-        emergencyContact,
         address,
         city,
+        district,
+        sector,
+        contactPerson, 
+        businessRegistration,
+        emergencyContact,
         postalCode,
-        clientType,
         preferredSchedule,
         notes,
         isVip,
-        discount,
+        discount
       } = req.body;
 
-      const clientData = {
-        userId,
-        companyName,
-        contactPerson,
-        businessRegistration,
-        phone,
-        email,
-        emergencyContact,
-        address,
-        city,
-        postalCode,
-        clientType: clientType as ClientType,
-        preferredSchedule,
-        notes,
-        isVip,
-        discount,
+      // Construimos el payload para el nuevo método del servicio
+      const payload: AdminCreateClientAndUserPayload = {
+        newUser: {
+          username: username,
+          email: email, 
+          password: password,
+        },
+        clientProfile: {
+          clientType: clientType as ClientType, 
+          companyName: companyName,    
+          firstName: firstName,        
+          lastName: lastName,          
+          name: name, 
+          ruc: ruc,
+          dni: dni,
+          phone: phone,
+          address: address,
+          city: city,
+          district: district,
+          sector: sector,
+          email: email, 
+          contactPerson: contactPerson,
+          businessRegistration: businessRegistration,
+          emergencyContact: emergencyContact,
+          postalCode: postalCode,
+          preferredSchedule: preferredSchedule,
+          notes: notes,
+          isVip: isVip,
+          discount: discount,
+        }
       };
-
-      const client = await ClientService.createClient(clientData);
+      
+      if (!payload.newUser.username || !payload.newUser.email || !payload.newUser.password) {
+        res.status(400).json({ success: false, message: "El nombre de usuario, email y contraseña son requeridos para la nueva cuenta del cliente." });
+        return;
+      }
+      if (!payload.clientProfile.clientType) {
+        res.status(400).json({ success: false, message: "El tipo de cliente (clientType) es requerido." });
+        return;
+      }
+      if (payload.clientProfile.clientType === ClientType.COMPANY && !(payload.clientProfile.companyName || payload.clientProfile.name) ) {
+          res.status(400).json({ success: false, message: "El nombre de la empresa (companyName o name) es requerido para clientes de tipo EMPRESA." });
+          return;
+      }
+      if (payload.clientProfile.clientType === ClientType.PERSONAL && !(payload.clientProfile.firstName || payload.clientProfile.name)) {
+          res.status(400).json({ success: false, message: "El nombre (firstName o name) es requerido para clientes de tipo PERSONAL." });
+          return;
+      }
+      
+      const client = await ClientService.adminCreatesClientWithUser(payload);
 
       res.status(201).json({
         success: true,
-        message: "Perfil de cliente creado exitosamente",
+        message: "Cliente y cuenta de usuario creados exitosamente",
         data: client,
       });
-    } catch (error) {
-      console.error("Error creating client:", error);
-
-      if (error instanceof Error) {
-        if (error.message.includes("ya tiene un perfil")) {
-          res.status(400).json({
-            success: false,
-            message: error.message,
-          });
-          return;
-        }
-
-        if (
-          error.message.includes("no encontrado") ||
-          error.message.includes("debe tener rol")
-        ) {
-          res.status(404).json({
-            success: false,
-            message: error.message,
-          });
-          return;
-        }
+    } catch (error: any) { 
+      console.error("Error en ClientController.create:", error);
+      if (error.message && (
+          error.message.includes('ya existe') || 
+          error.message.includes('registrado') || 
+          error.message.includes('requerida') || 
+          error.message.includes('Error al crear el cliente y su usuario') ||
+          error.message.toLowerCase().includes('inválido') 
+        )) {
+        res.status(400).json({ success: false, message: error.message });
+        return;
       }
-
       res.status(500).json({
         success: false,
-        message: "Error interno del servidor",
-        error: error instanceof Error ? error.message : "Unknown error",
+        message: "Error interno del servidor al procesar la creación del cliente.",
+        errorDetail: error.message || "Error desconocido",
       });
     }
   }
@@ -98,15 +126,14 @@ export class ClientController {
         search,
         page = "1",
         limit = "20",
-      } = req.query;
+      } = req.query as any;
 
-      const filters = {
-        ...(status && { status: status as ClientStatus }),
-        ...(clientType && { clientType: clientType as ClientType }),
-        ...(city && { city: city as string }),
-        ...(isVip !== undefined && { isVip: isVip === "true" }),
-        ...(search && { search: search as string }),
-      };
+      const filters: any = {};
+      if (status) filters.status = status as ClientStatus;
+      if (clientType) filters.clientType = clientType as ClientType;
+      if (city) filters.city = city as string;
+      if (isVip !== undefined) filters.isVip = isVip === "true";
+      if (search) filters.search = search as string;
 
       const pageNumber = parseInt(page as string, 10);
       const limitNumber = parseInt(limit as string, 10);
@@ -122,7 +149,7 @@ export class ClientController {
         message: "Clientes obtenidos exitosamente",
         data: result.clients,
         pagination: {
-          currentPage: pageNumber,
+          currentPage: result.currentPage,
           totalPages: result.totalPages,
           totalClients: result.totalClients,
           hasNext: result.hasNext,
@@ -133,7 +160,7 @@ export class ClientController {
       console.error("Error fetching clients:", error);
       res.status(500).json({
         success: false,
-        message: "Error interno del servidor",
+        message: "Error interno del servidor al obtener clientes",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -162,10 +189,10 @@ export class ClientController {
         data: client,
       });
     } catch (error) {
-      console.error("Error fetching client:", error);
+      console.error("Error fetching client by ID:", error);
       res.status(500).json({
         success: false,
-        message: "Error interno del servidor",
+        message: "Error interno del servidor al obtener cliente por ID",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -183,9 +210,9 @@ export class ClientController {
       if (!client) {
         res.status(404).json({
           success: false,
-          message: "Perfil de cliente no encontrado",
+          message: "Perfil de cliente no encontrado para el ID de usuario proporcionado",
         });
-        return; // Solo return sin valor para salir de la función
+        return;
       }
 
       res.status(200).json({
@@ -194,10 +221,10 @@ export class ClientController {
         data: client,
       });
     } catch (error) {
-      console.error("Error fetching client profile:", error);
+      console.error("Error fetching client profile by User ID:", error);
       res.status(500).json({
         success: false,
-        message: "Error interno del servidor",
+        message: "Error interno del servidor al obtener perfil de cliente",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -217,7 +244,7 @@ export class ClientController {
       if (!client) {
         res.status(404).json({
           success: false,
-          message: "Cliente no encontrado",
+          message: "Cliente no encontrado para actualizar",
         });
         return;
       }
@@ -231,7 +258,7 @@ export class ClientController {
       console.error("Error updating client:", error);
       res.status(500).json({
         success: false,
-        message: "Error interno del servidor",
+        message: "Error interno del servidor al actualizar cliente",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -249,20 +276,20 @@ export class ClientController {
       if (!success) {
         res.status(404).json({
           success: false,
-          message: "Cliente no encontrado",
+          message: "Cliente no encontrado para eliminar",
         });
         return;
       }
 
       res.status(200).json({
         success: true,
-        message: "Cliente eliminado exitosamente",
+        message: "Cliente marcado como inactivo exitosamente",
       });
     } catch (error) {
       console.error("Error deleting client:", error);
       res.status(500).json({
         success: false,
-        message: "Error interno del servidor",
+        message: "Error interno del servidor al eliminar cliente",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -282,21 +309,19 @@ export class ClientController {
         message: "Estadísticas del cliente obtenidas exitosamente",
         data: stats,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching client stats:", error);
-
-      if (error instanceof Error && error.message.includes("no encontrado")) {
+      if (error.message && error.message.includes("no encontrado")) {
         res.status(404).json({
           success: false,
           message: error.message,
         });
         return;
       }
-
       res.status(500).json({
         success: false,
-        message: "Error interno del servidor",
-        error: error instanceof Error ? error.message : "Unknown error",
+        message: "Error interno del servidor al obtener estadísticas",
+        error: error.message || "Unknown error",
       });
     }
   }
@@ -308,7 +333,7 @@ export class ClientController {
   static async getByType(req: Request, res: Response): Promise<void> {
     try {
       const { clientType } = req.params;
-      const { page = "1", limit = "20" } = req.query;
+      const { page = "1", limit = "20" } = req.query as any;
 
       const filters = {
         clientType: clientType.toUpperCase() as ClientType,
@@ -325,10 +350,10 @@ export class ClientController {
 
       res.status(200).json({
         success: true,
-        message: `Clientes ${clientType.toLowerCase()} obtenidos exitosamente`,
+        message: `Clientes tipo '${clientType.toLowerCase()}' obtenidos exitosamente`,
         data: result.clients,
         pagination: {
-          currentPage: pageNumber,
+          currentPage: result.currentPage,
           totalPages: result.totalPages,
           totalClients: result.totalClients,
           hasNext: result.hasNext,
@@ -339,7 +364,7 @@ export class ClientController {
       console.error("Error fetching clients by type:", error);
       res.status(500).json({
         success: false,
-        message: "Error interno del servidor",
+        message: "Error interno del servidor al obtener clientes por tipo",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -351,7 +376,7 @@ export class ClientController {
    */
   static async getVipClients(req: Request, res: Response): Promise<void> {
     try {
-      const { page = "1", limit = "20" } = req.query;
+      const { page = "1", limit = "20" } = req.query as any;
 
       const filters = {
         isVip: true,
@@ -371,7 +396,7 @@ export class ClientController {
         message: "Clientes VIP obtenidos exitosamente",
         data: result.clients,
         pagination: {
-          currentPage: pageNumber,
+          currentPage: result.currentPage,
           totalPages: result.totalPages,
           totalClients: result.totalClients,
           hasNext: result.hasNext,
@@ -382,7 +407,7 @@ export class ClientController {
       console.error("Error fetching VIP clients:", error);
       res.status(500).json({
         success: false,
-        message: "Error interno del servidor",
+        message: "Error interno del servidor al obtener clientes VIP",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -404,7 +429,7 @@ export class ClientController {
       if (!client) {
         res.status(404).json({
           success: false,
-          message: "Cliente no encontrado",
+          message: "Cliente no encontrado para actualizar estado",
         });
         return;
       }
@@ -418,7 +443,7 @@ export class ClientController {
       console.error("Error updating client status:", error);
       res.status(500).json({
         success: false,
-        message: "Error interno del servidor",
+        message: "Error interno del servidor al actualizar estado del cliente",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -443,7 +468,7 @@ export class ClientController {
       if (!client) {
         res.status(404).json({
           success: false,
-          message: "Cliente no encontrado",
+          message: "Cliente no encontrado para actualizar estado VIP",
         });
         return;
       }
@@ -457,7 +482,7 @@ export class ClientController {
       console.error("Error toggling VIP status:", error);
       res.status(500).json({
         success: false,
-        message: "Error interno del servidor",
+        message: "Error interno del servidor al actualizar estado VIP",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -469,18 +494,18 @@ export class ClientController {
    */
   static async search(req: Request, res: Response): Promise<void> {
     try {
-      const { q: search, page = "1", limit = "20" } = req.query;
+      const { q: searchTerm, page = "1", limit = "20" } = req.query as any;
 
-      if (!search) {
+      if (!searchTerm) {
         res.status(400).json({
           success: false,
-          message: "El parámetro de búsqueda es requerido",
+          message: "El parámetro de búsqueda 'q' es requerido",
         });
         return;
       }
 
       const filters = {
-        search: search as string,
+        search: searchTerm as string,
       };
 
       const pageNumber = parseInt(page as string, 10);
@@ -497,19 +522,19 @@ export class ClientController {
         message: "Búsqueda de clientes completada",
         data: result.clients,
         pagination: {
-          currentPage: pageNumber,
+          currentPage: result.currentPage,
           totalPages: result.totalPages,
           totalClients: result.totalClients,
           hasNext: result.hasNext,
           hasPrev: result.hasPrev,
         },
-        searchTerm: search,
+        searchTerm: searchTerm,
       });
     } catch (error) {
       console.error("Error searching clients:", error);
       res.status(500).json({
         success: false,
-        message: "Error interno del servidor",
+        message: "Error interno del servidor al buscar clientes",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
