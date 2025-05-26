@@ -466,4 +466,114 @@ export class ServiceController {
       });
     }
   }
+
+  /**
+   * Get evaluations for a specific technician
+   * GET /api/services/technician/:technicianId/evaluations
+   * Note: technicianId can be either technician ID or user ID
+   */
+  static async getTechnicianEvaluations(req: Request, res: Response): Promise<void> {
+    try {
+      const { technicianId } = req.params;
+
+      // Verify technician exists and get evaluations (supports both technician ID and user ID)
+      const evaluations = await ServiceService.getTechnicianEvaluations(technicianId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Evaluaciones del técnico obtenidas exitosamente',
+        data: evaluations
+      });
+    } catch (error: any) {
+      console.error('Error fetching technician evaluations:', error);
+      
+      if (error.message && error.message.includes('no encontrado')) {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor',
+        error: error.message || 'Unknown error'
+      });
+    }
+  }
+
+  /**
+   * Rate a completed service
+   * PATCH /api/services/:id/rate
+   */
+  static async rateService(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { rating, comment } = req.body;
+
+      // Validate rating
+      if (!rating || rating < 1 || rating > 5) {
+        res.status(400).json({
+          success: false,
+          message: 'La calificación debe estar entre 1 y 5'
+        });
+        return;
+      }
+
+      // If user is CLIENT, verify they own this service
+      if ((req as any).user?.role === 'CLIENT') {
+        const userId = (req as any).user?.userId || (req as any).user?.id;
+        if (!userId) {
+          res.status(401).json({ 
+            success: false, 
+            message: 'Usuario no autenticado' 
+          });
+          return;
+        }
+        
+        const client = await ServiceService.getClientByUserId(userId);
+        const service = await ServiceService.getServiceById(id);
+        
+        if (!client || !service || service.clientId !== client.id) {
+          res.status(403).json({
+            success: false,
+            message: 'No tienes permisos para evaluar este servicio'
+          });
+          return;
+        }
+      }
+
+      const ratedService = await ServiceService.rateService(id, {
+        rating: parseFloat(rating),
+        comment: comment || null
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Servicio evaluado exitosamente',
+        data: ratedService
+      });
+    } catch (error: any) {
+      console.error('Error rating service:', error);
+      
+      if (error.message && (
+        error.message.includes('no encontrado') ||
+        error.message.includes('completado') ||
+        error.message.includes('ya evaluado')
+      )) {
+        res.status(400).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor',
+        error: error.message || 'Unknown error'
+      });
+    }
+  }
 }

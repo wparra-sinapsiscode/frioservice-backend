@@ -523,4 +523,187 @@ export class ServiceService {
       throw error;
     }
   }
+
+  /**
+   * Get evaluations for a specific technician
+   * Returns completed services with ratings and comments
+   */
+  static async getTechnicianEvaluations(userIdOrTechnicianId: string) {
+    try {
+      // First try to find technician by direct ID
+      let technician = await prisma.technician.findUnique({
+        where: { id: userIdOrTechnicianId }
+      });
+
+      // If not found, try to find by userId
+      if (!technician) {
+        technician = await prisma.technician.findUnique({
+          where: { userId: userIdOrTechnicianId }
+        });
+      }
+
+      if (!technician) {
+        throw new Error('Técnico no encontrado');
+      }
+
+      // Get completed services with evaluations using the technician ID
+      const evaluations = await prisma.service.findMany({
+        where: {
+          technicianId: technician.id,
+          status: ServiceStatus.COMPLETED,
+          clientRating: {
+            not: null
+          }
+        },
+        include: {
+          client: {
+            select: {
+              id: true,
+              companyName: true,
+              contactPerson: true,
+              clientType: true
+            }
+          }
+        },
+        orderBy: {
+          ratedAt: 'desc'
+        }
+      });
+
+      // Transform data to match frontend expectations
+      const formattedEvaluations = evaluations.map(service => ({
+        id: service.id,
+        clientName: service.client.companyName || service.client.contactPerson || 'Cliente',
+        date: service.ratedAt ? service.ratedAt.toLocaleDateString('es-ES') : service.completedAt?.toLocaleDateString('es-ES') || '',
+        rating: service.clientRating || 0,
+        comment: service.clientComment || '',
+        serviceType: service.type,
+        equipment: 'Equipo de refrigeración', // Could be enhanced with actual equipment data
+        serviceDate: service.completedAt ? service.completedAt.toLocaleDateString('es-ES') : '',
+        title: service.title
+      }));
+
+      return formattedEvaluations;
+    } catch (error) {
+      console.error('Error en ServiceService.getTechnicianEvaluations:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Rate a completed service
+   * Adds client rating and comment to a service
+   */
+  static async rateService(serviceId: string, ratingData: {
+    rating: number;
+    comment?: string | null;
+  }) {
+    try {
+      // Verify service exists
+      const service = await prisma.service.findUnique({
+        where: { id: serviceId },
+        include: {
+          client: true,
+          technician: true
+        }
+      });
+
+      if (!service) {
+        throw new Error('Servicio no encontrado');
+      }
+
+      // Verify service is completed
+      if (service.status !== ServiceStatus.COMPLETED) {
+        throw new Error('Solo se pueden evaluar servicios completados');
+      }
+
+      // Verify service hasn't been rated yet
+      if (service.clientRating !== null) {
+        throw new Error('Este servicio ya ha sido evaluado');
+      }
+
+      // Validate rating range
+      if (ratingData.rating < 1 || ratingData.rating > 5) {
+        throw new Error('La calificación debe estar entre 1 y 5');
+      }
+
+      // Update service with rating
+      const updatedService = await prisma.service.update({
+        where: { id: serviceId },
+        data: {
+          clientRating: ratingData.rating,
+          clientComment: ratingData.comment ? ratingData.comment : null,
+          ratedAt: new Date()
+        },
+        include: {
+          client: {
+            select: {
+              id: true,
+              companyName: true,
+              contactPerson: true
+            }
+          },
+          technician: {
+            select: {
+              id: true,
+              name: true,
+              firstName: true,
+              lastName: true
+            }
+          }
+        }
+      });
+
+      // Update technician's average rating
+      if (service.technicianId) {
+        await this.updateTechnicianAverageRating(service.technicianId);
+      }
+
+      return updatedService;
+    } catch (error) {
+      console.error('Error en ServiceService.rateService:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update technician's average rating based on all their service ratings
+   */
+  static async updateTechnicianAverageRating(technicianId: string) {
+    try {
+      // Get all rated services for this technician
+      const ratedServices = await prisma.service.findMany({
+        where: {
+          technicianId: technicianId,
+          clientRating: {
+            not: null
+          }
+        },
+        select: {
+          clientRating: true
+        }
+      });
+
+      if (ratedServices.length === 0) {
+        return;
+      }
+
+      // Calculate average rating
+      const totalRating = ratedServices.reduce((sum, service) => sum + (service.clientRating || 0), 0);
+      const averageRating = totalRating / ratedServices.length;
+
+      // Update technician's rating
+      await prisma.technician.update({
+        where: { id: technicianId },
+        data: {
+          rating: Math.round(averageRating * 10) / 10 // Round to 1 decimal place
+        }
+      });
+
+      console.log(`Updated technician ${technicianId} rating to ${averageRating.toFixed(1)}`);
+    } catch (error) {
+      console.error('Error updating technician average rating:', error);
+      // Don't throw error here as this is a secondary operation
+    }
+  }
 }

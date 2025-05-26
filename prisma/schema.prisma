@@ -1,6 +1,3 @@
-// This isyourPrismaschemafile,
-//learnmoreaboutitinthedocs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
@@ -11,88 +8,154 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User main model
 model User {
-  id           String   @id @default(cuid())
-  username     String   @unique
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  role         UserRole @default(CLIENT)
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  // Relaciones
-  client     Client?
-  technician Technician?
+  id           String      @id @default(cuid())
+  username     String      @unique
+  email        String      @unique
+  passwordHash String      @map("password_hash")
+  role         UserRole    @default(CLIENT)
+  isActive     Boolean     @default(true) @map("is_active")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  client       Client?
+  technician   Technician?
 
   @@map("users")
 }
 
-// Client profile model
 model Client {
-  id                  String      @id @default(cuid())
-  userId              String      @unique @map("user_id")
-  companyName         String?     @map("company_name")
-  contactPerson       String?     @map("contact_person")
-  businessRegistration String?   @map("business_registration") // RUC for companies, DNI for personal
-  phone               String?
-  email               String?     // Direct contact email for client
-  emergencyContact    String?     @map("emergency_contact")
-  address             String?
-  city                String?
-  district             String?   // <-- AÑADE ESTA LÍNEA
-  postalCode          String?     @map("postal_code")
-  clientType          ClientType  @default(PERSONAL) @map("client_type")
-  sector               String?  
-  status              ClientStatus @default(ACTIVE)
-  preferredSchedule   String?     @map("preferred_schedule") // "morning", "afternoon", "evening"
-  nextServiceDate     DateTime?   @map("next_service_date")
-  totalServices       Int         @default(0) @map("total_services")
-  notes               String?     // Additional notes about the client
-  isVip               Boolean     @default(false) @map("is_vip")
-  discount            Float?      @default(0.0)  // Discount percentage for VIP clients
-  createdAt           DateTime    @default(now()) @map("created_at")
-  updatedAt           DateTime    @updatedAt @map("updated_at")
-
-  // Relaciones
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Relaciones con otras entidades
-  services  Service[]
-  quotes    Quote[]
-  equipment Equipment[]
+  id                   String       @id @default(cuid())
+  userId               String       @unique @map("user_id")
+  companyName          String?      @map("company_name")
+  contactPerson        String?      @map("contact_person")
+  businessRegistration String?      @map("business_registration")
+  phone                String?
+  email                String?
+  emergencyContact     String?      @map("emergency_contact")
+  address              String?
+  city                 String?
+  district             String?
+  postalCode           String?      @map("postal_code")
+  clientType           ClientType   @default(PERSONAL) @map("client_type")
+  sector               String?
+  status               ClientStatus @default(ACTIVE)
+  preferredSchedule    String?      @map("preferred_schedule")
+  nextServiceDate      DateTime?    @map("next_service_date")
+  totalServices        Int          @default(0) @map("total_services")
+  notes                String?
+  isVip                Boolean      @default(false) @map("is_vip")
+  discount             Float?       @default(0.0)
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  equipment            Equipment[]
+  quotes               Quote[]
+  services             Service[]
 
   @@map("clients")
 }
 
-// Technician profile model
 model Technician {
-  id              String   @id @default(cuid())
-  userId          String   @unique @map("user_id")
-  specialty       String
-  experienceYears Int      @map("experience_years")
-  rating          Float
-  phone           String?
-  isAvailable     Boolean  @default(true) @map("is_available")
-  servicesCompleted Int    @default(0) @map("services_completed")
-  averageTime     String?  @map("average_time")
-  firstName       String?  @map("first_name")
-  lastName        String?  @map("last_name")
-  name            String?  // Nombre completo o combinado
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  // Relaciones
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Relaciones
-  services Service[]
+  id                String    @id @default(cuid())
+  userId            String    @unique @map("user_id")
+  specialty         String
+  experienceYears   Int       @map("experience_years")
+  rating            Float
+  phone             String?
+  isAvailable       Boolean   @default(true) @map("is_available")
+  servicesCompleted Int       @default(0) @map("services_completed")
+  averageTime       String?   @map("average_time")
+  firstName         String?   @map("first_name")
+  lastName          String?   @map("last_name")
+  name              String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  services          Service[]
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("technicians")
 }
 
-// Enums
+model Service {
+  id                 String          @id @default(cuid())
+  title              String
+  description        String?
+  clientId           String          @map("client_id")
+  technicianId       String?         @map("technician_id")
+  status             ServiceStatus   @default(PENDING)
+  type               ServiceType
+  priority           ServicePriority @default(MEDIUM)
+  scheduledDate      DateTime        @map("scheduled_date")
+  estimatedDuration  Int?            @map("estimated_duration")
+  actualDuration     Int?            @map("actual_duration")
+  equipmentIds       String[]        @map("equipment_ids")
+  address            String
+  contactPhone       String          @map("contact_phone")
+  emergencyContact   String?         @map("emergency_contact")
+  accessInstructions String?         @map("access_instructions")
+  clientNotes        String?         @map("client_notes")
+  workPerformed      String?         @map("work_performed")
+  timeSpent          Int?            @map("time_spent")
+  materialsUsed      Json?           @map("materials_used")
+  technicianNotes    String?         @map("technician_notes")
+  clientSignature    String?         @map("client_signature")
+  images             String[]
+  
+  // Evaluation fields
+  clientRating       Float?          @map("client_rating")     // 1.0-5.0 rating from client
+  clientComment      String?         @map("client_comment")    // Client's evaluation comment
+  ratedAt           DateTime?       @map("rated_at")          // When the evaluation was submitted
+  
+  completedAt        DateTime?       @map("completed_at")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+  quotes             Quote[]
+  client             Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  technician         Technician?     @relation(fields: [technicianId], references: [id])
+
+  @@map("services")
+}
+
+model Equipment {
+  id             String          @id @default(cuid())
+  clientId       String          @map("client_id")
+  name           String
+  model          String?
+  brand          String?
+  serialNumber   String?         @map("serial_number")
+  type           String
+  location       String?
+  installDate    DateTime?       @map("install_date")
+  warrantyExpiry DateTime?       @map("warranty_expiry")
+  status         EquipmentStatus @default(ACTIVE)
+  notes          String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  client         Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("equipment")
+}
+
+model Quote {
+  id          String      @id @default(cuid())
+  serviceId   String?     @map("service_id")
+  clientId    String      @map("client_id")
+  title       String
+  description String?
+  amount      Float
+  status      QuoteStatus @default(PENDING)
+  validUntil  DateTime    @map("valid_until")
+  approvedAt  DateTime?   @map("approved_at")
+  rejectedAt  DateTime?   @map("rejected_at")
+  notes       String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  service     Service?    @relation(fields: [serviceId], references: [id])
+
+  @@map("quotes")
+}
+
 enum UserRole {
   ADMIN
   TECHNICIAN
@@ -111,94 +174,6 @@ enum ClientStatus {
   BLOCKED
 }
 
-// Service model
-model Service {
-  id                String      @id @default(cuid())
-  title             String
-  description       String?
-  clientId          String      @map("client_id")
-  technicianId      String?     @map("technician_id")
-  status            ServiceStatus @default(PENDING)
-  type              ServiceType
-  priority          ServicePriority @default(MEDIUM)
-  scheduledDate     DateTime    @map("scheduled_date")
-  estimatedDuration Int?        @map("estimated_duration") // minutes
-  actualDuration    Int?        @map("actual_duration") // minutes
-  equipmentIds      String[]    @map("equipment_ids") // Array of equipment IDs
-  address           String
-  contactPhone      String      @map("contact_phone")
-  emergencyContact  String?     @map("emergency_contact")
-  accessInstructions String?    @map("access_instructions")
-  clientNotes       String?     @map("client_notes")
-  
-  // Completion fields
-  workPerformed     String?     @map("work_performed")
-  timeSpent         Int?        @map("time_spent") // minutes
-  materialsUsed     Json?       @map("materials_used") // JSON array of materials
-  technicianNotes   String?     @map("technician_notes")
-  clientSignature   String?     @map("client_signature") // base64 image
-  images            String[]    // Array of image URLs
-  
-  // Timestamps
-  completedAt       DateTime?   @map("completed_at")
-  createdAt         DateTime    @default(now()) @map("created_at")
-  updatedAt         DateTime    @updatedAt @map("updated_at")
-
-  // Relaciones
-  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  technician  Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
-  quotes      Quote[]
-
-  @@map("services")
-}
-
-// Equipment model (for future use)
-model Equipment {
-  id          String   @id @default(cuid())
-  clientId    String   @map("client_id")
-  name        String
-  model       String?
-  brand       String?
-  serialNumber String? @map("serial_number")
-  type        String   // Refrigerador, Congelador, etc.
-  location    String?
-  installDate DateTime? @map("install_date")
-  warrantyExpiry DateTime? @map("warranty_expiry")
-  status      EquipmentStatus @default(ACTIVE)
-  notes       String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relaciones
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  @@map("equipment")
-}
-
-// Quote model (for future use)
-model Quote {
-  id          String      @id @default(cuid())
-  serviceId   String?     @map("service_id")
-  clientId    String      @map("client_id")
-  title       String
-  description String?
-  amount      Float
-  status      QuoteStatus @default(PENDING)
-  validUntil  DateTime    @map("valid_until")
-  approvedAt  DateTime?   @map("approved_at")
-  rejectedAt  DateTime?   @map("rejected_at")
-  notes       String?
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-
-  // Relaciones
-  service     Service?    @relation(fields: [serviceId], references: [id], onDelete: SetNull)
-  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  @@map("quotes")
-}
-
-// Service-related enums
 enum ServiceStatus {
   PENDING
   CONFIRMED

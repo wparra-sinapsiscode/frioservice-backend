@@ -100,4 +100,17 @@ router.get('/technician/:technicianId',
   ServiceController.getServicesByTechnician
 );
 
+// Rutas para evaluaciones
+router.get('/technician/:technicianId/evaluations', 
+  authorize('ADMIN', 'TECHNICIAN'), 
+  validateParams(TechnicianIdSchema),
+  ServiceController.getTechnicianEvaluations
+);
+
+router.patch('/:id/rate', 
+  authorize('ADMIN', 'CLIENT'), 
+  validateParams(ServiceIdSchema),
+  ServiceController.rateService
+);
+
 export default router;
