@@ -137,6 +137,9 @@ export class ServiceService {
    */
   static async getServices(filters: ServiceFilters = {}, page: number = 1, limit: number = 20) {
     try {
+      console.log('🔥 ServiceService.getServices - Starting with filters:', filters);
+      console.log('🔥 ServiceService.getServices - Page:', page, 'Limit:', limit);
+      
       const skip = (page - 1) * limit;
 
       // Construir where clause basado en filtros
@@ -177,6 +180,9 @@ export class ServiceService {
         };
       }
 
+      console.log('🔥 ServiceService.getServices - Final where clause:', where);
+      console.log('🔥 ServiceService.getServices - Skip:', skip, 'Take:', limit);
+
       const [services, total] = await Promise.all([
         prisma.service.findMany({
           where,
@@ -212,6 +218,9 @@ export class ServiceService {
         }),
         prisma.service.count({ where })
       ]);
+      
+      console.log('🔥 ServiceService.getServices - Services found:', services.length);
+      console.log('🔥 ServiceService.getServices - Total count:', total);
 
       return {
         services,
@@ -302,6 +311,7 @@ export class ServiceService {
         updateData.completedAt = new Date();
       }
 
+
       const service = await prisma.service.update({
         where: { id },
         data: updateData,
@@ -391,15 +401,48 @@ export class ServiceService {
     try {
       const updateData: any = {
         status: ServiceStatus.COMPLETED,
-        completedAt: new Date(),
-        notes: completionData.technicianNotes
+        completedAt: new Date()
       };
 
-      if (typeof completionData.timeSpent === 'number') {
-        updateData.actualDuration = completionData.timeSpent;
+      // Guardar trabajo realizado
+      if (completionData.workPerformed) {
+        updateData.workPerformed = completionData.workPerformed;
       }
 
+      // Guardar tiempo gastado
+      if (typeof completionData.timeSpent === 'number') {
+        updateData.actualDuration = completionData.timeSpent;
+        updateData.timeSpent = completionData.timeSpent; // Agregar campo timeSpent también
+      }
+
+      // Guardar materiales utilizados
+      if (completionData.materialsUsed) {
+        updateData.materialsUsed = Array.isArray(completionData.materialsUsed) 
+          ? completionData.materialsUsed 
+          : JSON.stringify(completionData.materialsUsed);
+      }
+
+      // Guardar notas del técnico
+      if (completionData.technicianNotes) {
+        updateData.technicianNotes = completionData.technicianNotes;
+        updateData.notes = completionData.technicianNotes; // Mantener compatibilidad
+      }
+
+      // Guardar firma del cliente
+      if (completionData.clientSignature) {
+        updateData.clientSignature = completionData.clientSignature;
+      }
+
+      // Guardar imágenes si las hay
+      if (completionData.images && Array.isArray(completionData.images)) {
+        updateData.images = completionData.images;
+      }
+
+      console.log('🔥 ServiceService.completeService - Datos a actualizar:', updateData);
+
       const service = await this.updateService(serviceId, updateData);
+
+      console.log('🔥 ServiceService.completeService - Servicio actualizado:', service);
 
       return service;
     } catch (error) {
@@ -462,6 +505,21 @@ export class ServiceService {
       return services;
     } catch (error) {
       console.error('Error en ServiceService.getServicesByTechnician:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get client by user ID
+   */
+  static async getClientByUserId(userId: string) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { userId }
+      });
+      return client;
+    } catch (error) {
+      console.error('Error en ServiceService.getClientByUserId:', error);
       throw error;
     }
   }

@@ -35,7 +35,7 @@ router.post('/',
 );
 
 router.get('/',
-  authorize('ADMIN'),
+  authorize('ADMIN', 'TECHNICIAN', 'CLIENT'),
   validateQuery(TechnicianFiltersSchema),
   TechnicianController.getAll
 );

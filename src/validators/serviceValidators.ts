@@ -27,7 +27,7 @@ export const ServiceStatusSchema = z.enum([
   'CANCELLED'
 ]);
 
-// Schema para crear un servicio
+// Schema para crear un servicio (ADMIN/TECHNICIAN)
 export const CreateServiceSchema = z.object({
   title: z.string()
     .min(1, 'El título es requerido')
@@ -39,6 +39,65 @@ export const CreateServiceSchema = z.object({
   
   clientId: z.string()
     .min(1, 'El ID del cliente es requerido'),
+  
+  technicianId: z.string()
+    .min(1, 'El ID del técnico es requerido')
+    .optional(),
+  
+  type: ServiceTypeSchema,
+  
+  priority: ServicePrioritySchema
+    .default('MEDIUM'),
+  
+  scheduledDate: z.string()
+    .datetime('Fecha programada debe ser un datetime válido')
+    .transform((val) => new Date(val)),
+  
+  estimatedDuration: z.number()
+    .min(15, 'La duración mínima es 15 minutos')
+    .max(480, 'La duración máxima es 8 horas (480 minutos)')
+    .optional(),
+  
+  equipmentIds: z.array(z.string())
+    .default([]),
+  
+  address: z.string()
+    .min(1, 'La dirección es requerida')
+    .max(500, 'La dirección no puede exceder 500 caracteres'),
+  
+  contactPhone: z.string()
+    .regex(/^\+?[\d\s-()]+$/, 'Formato de teléfono inválido')
+    .min(7, 'El teléfono debe tener al menos 7 dígitos')
+    .max(20, 'El teléfono no puede exceder 20 caracteres'),
+  
+  emergencyContact: z.string()
+    .regex(/^\+?[\d\s-()]+$/, 'Formato de teléfono de emergencia inválido')
+    .min(7, 'El teléfono de emergencia debe tener al menos 7 dígitos')
+    .max(20, 'El teléfono de emergencia no puede exceder 20 caracteres')
+    .optional(),
+  
+  accessInstructions: z.string()
+    .max(500, 'Las instrucciones de acceso no pueden exceder 500 caracteres')
+    .optional(),
+  
+  clientNotes: z.string()
+    .max(1000, 'Las notas del cliente no pueden exceder 1000 caracteres')
+    .optional()
+});
+
+// Schema para crear un servicio (CLIENT) - clientId es opcional
+export const CreateServiceClientSchema = z.object({
+  title: z.string()
+    .min(1, 'El título es requerido')
+    .max(200, 'El título no puede exceder 200 caracteres'),
+  
+  description: z.string()
+    .max(1000, 'La descripción no puede exceder 1000 caracteres')
+    .optional(),
+  
+  clientId: z.string()
+    .min(1, 'El ID del cliente es requerido')
+    .optional(),
   
   technicianId: z.string()
     .min(1, 'El ID del técnico es requerido')
@@ -170,17 +229,23 @@ export const CompleteServiceSchema = z.object({
     unit: z.string().min(1, 'La unidad es requerida'),
     cost: z.number().min(0, 'El costo debe ser positivo').optional()
   }))
-    .default([]),
+    .default([])
+    .optional(),
   
   technicianNotes: z.string()
     .max(1000, 'Las notas del técnico no pueden exceder 1000 caracteres')
     .optional(),
   
-  clientSignature: z.string()
-    .min(1, 'La firma del cliente es requerida'),
+  clientSignature: z.union([
+    z.string().min(1),  // Para firmas base64 o texto
+    z.boolean(),        // Para confirmar con checkbox
+    z.literal('confirmed') // Para valor "confirmed"
+  ])
+    .optional(),
   
   images: z.array(z.string())
     .default([])
+    .optional()
 });
 
 // Schema para filtros de búsqueda

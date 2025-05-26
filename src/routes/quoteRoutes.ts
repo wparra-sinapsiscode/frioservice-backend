@@ -25,7 +25,7 @@ router.post('/',
 );
 
 router.get('/', 
-  authorize('ADMIN', 'TECHNICIAN'), 
+  authorize('ADMIN', 'TECHNICIAN', 'CLIENT'), 
   validateQuery(QuoteFiltersSchema),
   QuoteController.getAll
 );
@@ -76,6 +76,13 @@ router.get('/client/:clientId',
   validateParams(ClientIdSchema),
   validateQuery(QuoteFiltersSchema),
   QuoteController.getByClient
+);
+
+// Ruta especial para que clientes creen solicitudes de servicio
+router.post('/request-service', 
+  authorize('CLIENT'), 
+  validateBody(CreateQuoteSchema),
+  QuoteController.createServiceRequest
 );
 
 export default router;

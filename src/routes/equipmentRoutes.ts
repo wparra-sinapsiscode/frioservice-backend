@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { EquipmentController } from '../controllers/equipmentController';
 import { authenticate, authorize } from '../middleware/auth';
-import { validateBody, validateParams, validateQuery } from '../middleware/validation';
+import { validateBody, validateParams, validateQuery, validateEquipmentCreation } from '../middleware/validation';
 import {
   CreateEquipmentSchema,
+  CreateEquipmentClientSchema,
   UpdateEquipmentSchema,
   EquipmentFiltersSchema,
   EquipmentIdSchema,
@@ -19,12 +20,12 @@ router.use(authenticate);
 // Rutas principales de equipos
 router.post('/', 
   authorize('ADMIN', 'CLIENT'), 
-  validateBody(CreateEquipmentSchema),
+  validateEquipmentCreation(CreateEquipmentSchema, CreateEquipmentClientSchema),
   EquipmentController.create
 );
 
 router.get('/', 
-  authorize('ADMIN', 'TECHNICIAN'), 
+  authorize('ADMIN', 'TECHNICIAN', 'CLIENT'), 
   validateQuery(EquipmentFiltersSchema),
   EquipmentController.getAll
 );
@@ -57,7 +58,7 @@ router.get('/client/:clientId',
 );
 
 router.patch('/:id/status', 
-  authorize('ADMIN', 'TECHNICIAN'), 
+  authorize('ADMIN', 'TECHNICIAN', 'CLIENT'), 
   validateParams(EquipmentIdSchema),
   validateBody(EquipmentStatusSchema),
   EquipmentController.updateStatus

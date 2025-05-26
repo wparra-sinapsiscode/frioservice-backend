@@ -1,7 +1,9 @@
 import { PrismaClient, UserRole, Technician } from '@prisma/client';
 import { hashPassword } from '../utils/auth';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ['query', 'info', 'warn', 'error'],
+});
 
 // Interfaces para operaciones de técnico
 export interface CreateTechnicianData {
@@ -124,10 +126,14 @@ export class TechnicianService {
           specialty: payload.technicianProfile.specialty.trim(),
           experienceYears: payload.technicianProfile.experienceYears,
           phone: payload.technicianProfile.phone || null,
-          rating: payload.technicianProfile.rating !== undefined ? payload.technicianProfile.rating : 0.0,
+          rating: payload.technicianProfile.rating !== undefined && payload.technicianProfile.rating !== null 
+            ? Number(payload.technicianProfile.rating) 
+            : 0.0,
           isAvailable: payload.technicianProfile.isAvailable ?? true,
           servicesCompleted: payload.technicianProfile.servicesCompleted !== undefined ? payload.technicianProfile.servicesCompleted : 0,
-          averageTime: payload.technicianProfile.averageTime || null,
+          averageTime: payload.technicianProfile.averageTime && payload.technicianProfile.averageTime.trim() 
+            ? payload.technicianProfile.averageTime.trim() 
+            : null,
           firstName: payload.technicianProfile.firstName || null,
           lastName: payload.technicianProfile.lastName || null,
           name: payload.technicianProfile.name || null,
@@ -138,6 +144,8 @@ export class TechnicianService {
         console.log(">>> [SERVICE] Creando perfil de técnico con datos:", JSON.stringify(technicianDataForDb, null, 2));
         
         // 3. Crear el perfil del técnico
+        console.log("🚨 [SERVICE] JUSTO ANTES DE LLAMAR A PRISMA CREATE - technicianDataForDb:", JSON.stringify(technicianDataForDb, null, 2));
+        
         const technician = await tx.technician.create({
           data: technicianDataForDb,
           include: {
@@ -166,6 +174,8 @@ export class TechnicianService {
             }
           }
         });
+        
+        console.log("🚨 [SERVICE] RESULTADO DE PRISMA CREATE - rating:", technician.rating, "averageTime:", technician.averageTime);
         console.log("<<< [SERVICE] Perfil de técnico CREADO:", JSON.stringify(technician, null, 2));
 
         return technician;
@@ -765,6 +775,104 @@ export class TechnicianService {
       return technicians as TechnicianWithRelations[];
     } catch (error) {
       console.error('Error fetching available technicians:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get technicians with public information only (for clients)
+   */
+  static async getTechniciansPublicInfo(filters: any = {}, page: number = 1, limit: number = 20) {
+    try {
+      const skip = (page - 1) * limit;
+      const where: any = {
+        user: {
+          isActive: true
+        }
+      };
+
+      // Apply filters
+      if (filters.specialty) {
+        where.specialty = {
+          contains: filters.specialty,
+          mode: 'insensitive'
+        };
+      }
+
+      if (filters.isAvailable !== undefined) {
+        where.isAvailable = filters.isAvailable;
+      }
+
+      if (filters.experienceYears) {
+        where.experienceYears = {
+          gte: filters.experienceYears
+        };
+      }
+
+      if (filters.search) {
+        where.OR = [
+          {
+            firstName: {
+              contains: filters.search,
+              mode: 'insensitive'
+            }
+          },
+          {
+            lastName: {
+              contains: filters.search,
+              mode: 'insensitive'
+            }
+          },
+          {
+            name: {
+              contains: filters.search,
+              mode: 'insensitive'
+            }
+          },
+          {
+            specialty: {
+              contains: filters.search,
+              mode: 'insensitive'
+            }
+          }
+        ];
+      }
+
+      const [technicians, total] = await Promise.all([
+        prisma.technician.findMany({
+          where,
+          skip,
+          take: limit,
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            name: true,
+            specialty: true,
+            experienceYears: true,
+            rating: true,
+            isAvailable: true,
+            servicesCompleted: true
+          },
+          orderBy: [
+            { isAvailable: 'desc' },
+            { rating: 'desc' },
+            { servicesCompleted: 'desc' }
+          ]
+        }),
+        prisma.technician.count({ where })
+      ]);
+
+      return {
+        technicians,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalTechnicians: total,
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      };
+    } catch (error) {
+      console.error('Error in getTechniciansPublicInfo:', error);
       throw error;
     }
   }

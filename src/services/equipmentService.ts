@@ -249,4 +249,19 @@ export class EquipmentService {
       throw error;
     }
   }
+
+  /**
+   * Get client by user ID
+   */
+  static async getClientByUserId(userId: string) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { userId }
+      });
+      return client;
+    } catch (error) {
+      console.error('Error en EquipmentService.getClientByUserId:', error);
+      throw error;
+    }
+  }
 }

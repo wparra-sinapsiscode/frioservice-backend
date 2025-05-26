@@ -133,6 +133,35 @@ export class TechnicianController {
         limit = "20",
       } = req.query as any;
 
+      // If user is CLIENT, return only public information
+      if ((req as any).user?.role === 'CLIENT') {
+        const filters: any = {};
+        if (specialty) filters.specialty = specialty as string;
+        if (isAvailable !== undefined) filters.isAvailable = isAvailable === "true";
+        if (experienceYears) filters.experienceYears = parseInt(experienceYears as string, 10);
+        if (search) filters.search = search as string;
+
+        const result = await TechnicianService.getTechniciansPublicInfo(
+          filters,
+          parseInt(page as string, 10),
+          parseInt(limit as string, 10)
+        );
+
+        res.status(200).json({
+          success: true,
+          message: "Técnicos obtenidos exitosamente",
+          data: result.technicians,
+          pagination: {
+            currentPage: result.currentPage,
+            totalPages: result.totalPages,
+            totalTechnicians: result.totalTechnicians,
+            hasNext: result.hasNext,
+            hasPrev: result.hasPrev,
+          },
+        });
+        return;
+      }
+
       const filters: any = {};
       if (specialty) filters.specialty = specialty as string;
       if (isAvailable !== undefined) filters.isAvailable = isAvailable === "true";

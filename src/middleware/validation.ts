@@ -87,3 +87,53 @@ export const validateQuery = (schema: ZodSchema) => {
     }
   };
 };
+
+// Custom validation for equipment creation based on user role
+export const validateEquipmentCreation = (adminSchema: ZodSchema, clientSchema: ZodSchema) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    try {
+      const userRole = (req as any).user?.role;
+      const schema = userRole === 'CLIENT' ? clientSchema : adminSchema;
+      
+      const validatedData = schema.parse(req.body);
+      (req as any).validatedBody = validatedData;
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({
+          success: false,
+          message: 'Datos de entrada inválidos en el cuerpo',
+          errors: formatZodError(error),
+        });
+        return;
+      }
+      console.error('Error inesperado en validateEquipmentCreation:', error);
+      next(error);
+    }
+  };
+};
+
+// Custom validation for service creation based on user role
+export const validateServiceCreation = (adminSchema: ZodSchema, clientSchema: ZodSchema) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    try {
+      const userRole = (req as any).user?.role;
+      const schema = userRole === 'CLIENT' ? clientSchema : adminSchema;
+      
+      const validatedData = schema.parse(req.body);
+      (req as any).validatedBody = validatedData;
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({
+          success: false,
+          message: 'Datos de entrada inválidos en el cuerpo',
+          errors: formatZodError(error),
+        });
+        return;
+      }
+      console.error('Error inesperado en validateServiceCreation:', error);
+      next(error);
+    }
+  };
+};

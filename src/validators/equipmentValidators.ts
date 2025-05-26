@@ -1,9 +1,23 @@
 import { z } from 'zod';
 import { EquipmentStatus } from '@prisma/client';
 
-// Schema para crear equipo
+// Schema para crear equipo (ADMIN/TECHNICIAN)
 export const CreateEquipmentSchema = z.object({
   clientId: z.string().min(1, 'Client ID es requerido'),
+  name: z.string().min(1, 'Nombre es requerido').max(255, 'Nombre muy largo'),
+  model: z.string().max(255, 'Modelo muy largo').optional(),
+  brand: z.string().max(255, 'Marca muy larga').optional(),
+  serialNumber: z.string().max(255, 'Número de serie muy largo').optional(),
+  type: z.string().min(1, 'Tipo de equipo es requerido').max(255, 'Tipo muy largo'),
+  location: z.string().max(255, 'Ubicación muy larga').optional(),
+  installDate: z.string().datetime().optional().or(z.date().optional()),
+  warrantyExpiry: z.string().datetime().optional().or(z.date().optional()),
+  notes: z.string().max(1000, 'Notas muy largas').optional()
+});
+
+// Schema para crear equipo (CLIENT) - clientId es opcional
+export const CreateEquipmentClientSchema = z.object({
+  clientId: z.string().min(1, 'Client ID es requerido').optional(),
   name: z.string().min(1, 'Nombre es requerido').max(255, 'Nombre muy largo'),
   model: z.string().max(255, 'Modelo muy largo').optional(),
   brand: z.string().max(255, 'Marca muy larga').optional(),

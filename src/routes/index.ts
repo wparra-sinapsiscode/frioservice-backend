@@ -6,3 +6,4 @@ export * from './serviceRoutes';
 export * from './equipmentRoutes';
 export * from './quoteRoutes';
 export * from './uploadRoutes';
+export * from './statsRoutes';

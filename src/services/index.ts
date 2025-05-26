@@ -5,3 +5,4 @@ export * from './technicianService';
 export * from './serviceService';
 export * from './equipmentService';
 export * from './quoteService';
+export * from './statsService';

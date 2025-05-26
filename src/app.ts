@@ -11,8 +11,9 @@ import serviceRoutes from './routes/serviceRoutes';
 import clientRoutes from './routes/clientRoutes';
 import equipmentRoutes from './routes/equipmentRoutes';
 import quoteRoutes from './routes/quoteRoutes';
-import uploadRoutes from './routes/uploadRoutes';
+// import uploadRoutes from './routes/uploadRoutes';
 import technicianRoutes from './routes/technicianRoutes';
+import statsRoutes from './routes/statsRoutes';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -79,8 +80,9 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/quotes', quoteRoutes);
-app.use('/api/upload', uploadRoutes);
+// app.use('/api/upload', uploadRoutes);
 app.use('/api/technicians', technicianRoutes);
+app.use('/api/stats', statsRoutes);
 
 // API info endpoint
 app.get('/api', (_req, res) => {
@@ -95,7 +97,8 @@ app.get('/api', (_req, res) => {
       technicians: '/api/technicians',
       equipment: '/api/equipment',
       quotes: '/api/quotes',
-      upload: '/api/upload'
+      // upload: '/api/upload',
+      stats: '/api/stats'
     }
   });
 });

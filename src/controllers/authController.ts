@@ -47,10 +47,14 @@ export class AuthController {
    */
   static async login(req: Request, res: Response): Promise<void> {
     try {
+      console.log('🔥 AuthController.login - Iniciando proceso de login');
+      console.log('🔥 AuthController.login - Request body:', req.body);
+      
       const loginData: LoginData = req.body;
 
       // Validar datos requeridos
       if (!loginData.username || !loginData.password) {
+        console.log('🔥 AuthController.login - Datos faltantes:', { username: !!loginData.username, password: !!loginData.password });
         res.status(400).json({
           success: false,
           message: 'Username y password son requeridos'
@@ -58,7 +62,9 @@ export class AuthController {
         return;
       }
 
+      console.log('🔥 AuthController.login - Llamando a AuthService.login con:', { username: loginData.username });
       const result = await AuthService.login(loginData);
+      console.log('🔥 AuthController.login - AuthService.login exitoso, usuario:', result.user.username, 'rol:', result.user.role);
 
       res.status(200).json({
         success: true,
@@ -67,7 +73,9 @@ export class AuthController {
       });
 
     } catch (error) {
-      console.error('Error en AuthController.login:', error);
+      console.error('🔥 AuthController.login - Error:', error);
+      console.error('🔥 AuthController.login - Error message:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('🔥 AuthController.login - Error stack:', error instanceof Error ? error.stack : 'No stack');
       
       const errorMessage = error instanceof Error ? error.message : 'Error en login';
       

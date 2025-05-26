@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { ServiceController } from '../controllers/serviceController';
 import { authenticate, authorize } from '../middleware/auth';
-import { validateBody, validateParams, validateQuery } from '../middleware/validation';
+import { validateBody, validateParams, validateQuery, validateServiceCreation } from '../middleware/validation';
 import {
   CreateServiceSchema,
+  CreateServiceClientSchema,
   UpdateServiceSchema,
   AssignTechnicianSchema,
   CompleteServiceSchema,
@@ -15,18 +16,29 @@ import {
 
 const router = Router();
 
+// Middleware de logging para debugging
+router.use((req, _res, next) => {
+  try {
+    const bodyKeys = req.body && typeof req.body === 'object' ? Object.keys(req.body) : 'no body';
+    console.log(`🔥 ServiceRoutes - ${req.method} ${req.path} - Params:`, req.params, '- Body:', bodyKeys);
+  } catch (error) {
+    console.log(`🔥 ServiceRoutes - ${req.method} ${req.path} - Error in logging:`, error);
+  }
+  next();
+});
+
 // Todas las rutas requieren autenticación
 router.use(authenticate);
 
 // Rutas principales de servicios
 router.post('/', 
   authorize('ADMIN', 'CLIENT'), 
-  validateBody(CreateServiceSchema), 
+  validateServiceCreation(CreateServiceSchema, CreateServiceClientSchema),
   ServiceController.create
 );
 
 router.get('/', 
-  authorize('ADMIN', 'TECHNICIAN'), 
+  authorize('ADMIN', 'TECHNICIAN', 'CLIENT'), 
   validateQuery(ServiceFiltersSchema), 
   ServiceController.getAll
 );
@@ -59,6 +71,14 @@ router.patch('/:id/assign',
 );
 
 router.patch('/:id/complete', 
+  authorize('ADMIN', 'TECHNICIAN'), 
+  validateParams(ServiceIdSchema),
+  validateBody(CompleteServiceSchema),
+  ServiceController.completeService
+);
+
+// Agregar ruta POST para compatibilidad (si el frontend sigue enviando POST)
+router.post('/:id/complete', 
   authorize('ADMIN', 'TECHNICIAN'), 
   validateParams(ServiceIdSchema),
   validateBody(CompleteServiceSchema),

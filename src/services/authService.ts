@@ -20,6 +20,7 @@ export interface RegisterData {
     // Para técnicos
     specialty?: string;
     experienceYears?: number;
+    rating?: number;
     // Para ambos
     phone?: string;
   };
@@ -120,6 +121,7 @@ export class AuthService {
               userId: user.id,
               specialty: additionalData?.specialty || 'General',
               experienceYears: additionalData?.experienceYears || 0,
+              rating: additionalData?.rating || 5.0,
               phone: additionalData?.phone || null,
             }
           });
@@ -154,13 +156,18 @@ export class AuthService {
    */
   static async login(data: LoginData): Promise<AuthResponse> {
     try {
+      console.log('🔥 AuthService.login - Iniciando con datos:', { username: data.username });
+      
       const { username, password } = data;
 
       // Validar datos requeridos
       if (!username || !password) {
+        console.log('🔥 AuthService.login - Datos faltantes');
         throw new Error('Username y password son requeridos');
       }
 
+      console.log('🔥 AuthService.login - Buscando usuario en BD:', username);
+      
       // Buscar usuario con perfil
       const user = await prisma.user.findUnique({
         where: { username },
@@ -170,23 +177,49 @@ export class AuthService {
         }
       });
 
-      if (!user || !user.isActive) {
+      console.log('🔥 AuthService.login - Usuario encontrado:', !!user);
+      if (user) {
+        console.log('🔥 AuthService.login - Detalles usuario:', {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          isActive: user.isActive,
+          hasClient: !!user.client,
+          hasTechnician: !!user.technician
+        });
+      }
+
+      if (!user) {
+        console.log('🔥 AuthService.login - Usuario no encontrado');
         throw new Error('Credenciales inválidas');
       }
 
+      if (!user.isActive) {
+        console.log('🔥 AuthService.login - Usuario inactivo');
+        throw new Error('Credenciales inválidas');
+      }
+
+      console.log('🔥 AuthService.login - Verificando password');
+      
       // Verificar password
       const isValidPassword = await comparePassword(password, user.passwordHash);
+      console.log('🔥 AuthService.login - Password válido:', isValidPassword);
+      
       if (!isValidPassword) {
+        console.log('🔥 AuthService.login - Password inválido');
         throw new Error('Credenciales inválidas');
       }
 
       // Verificar estado del cliente si es un usuario CLIENT
       if (user.role === UserRole.CLIENT && user.client) {
+        console.log('🔥 AuthService.login - Verificando estado del cliente:', user.client.status);
         if (user.client.status === 'INACTIVE') {
           throw new Error('Su cuenta se encuentra inactiva. Contacte al administrador para más información.');
         }
       }
 
+      console.log('🔥 AuthService.login - Generando token');
+      
       // Generar token
       const token = generateToken({
         userId: user.id,
@@ -194,7 +227,9 @@ export class AuthService {
         role: user.role
       });
 
-      return {
+      console.log('🔥 AuthService.login - Token generado, preparando respuesta');
+      
+      const response = {
         token,
         user: {
           id: user.id,
@@ -204,9 +239,12 @@ export class AuthService {
           profile: user.client || user.technician || null
         }
       };
+      
+      console.log('🔥 AuthService.login - Login exitoso para usuario:', user.username);
+      return response;
 
     } catch (error) {
-      console.error('Error en AuthService.login:', error);
+      console.error('🔥 AuthService.login - Error:', error);
       throw error;
     }
   }

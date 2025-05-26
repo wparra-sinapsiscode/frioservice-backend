@@ -2,7 +2,8 @@
 //learnmoreaboutitinthedocs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -71,7 +72,7 @@ model Technician {
   userId          String   @unique @map("user_id")
   specialty       String
   experienceYears Int      @map("experience_years")
-  rating          Float    @default(0.0)
+  rating          Float
   phone           String?
   isAvailable     Boolean  @default(true) @map("is_available")
   servicesCompleted Int    @default(0) @map("services_completed")

@@ -5,3 +5,4 @@ export * from './technicianController';
 export * from './serviceController';
 export * from './equipmentController';
 export * from './quoteController';
+export * from './statsController';
