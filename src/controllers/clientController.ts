@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ClientService, AdminCreateClientAndUserPayload } from "../services/clientService"; 
+import { ClientService, AdminCreateClientAndUserPayload } from "../services/clientService";
 import { ClientType, ClientStatus } from "@prisma/client";
 
 export class ClientController {
@@ -9,16 +9,15 @@ export class ClientController {
    */
   static async create(req: Request, res: Response): Promise<void> {
     try {
-      // Extraemos todos los datos necesarios del req.body que envía el frontend
       const {
-        username, 
-        password, 
-        email,    
-        clientType, 
+        username,
+        password,
+        email,
+        clientType,
         companyName,
-        firstName,  
-        lastName,   
-        name,       
+        firstName,
+        lastName,
+        name,
         ruc,
         dni,
         phone,
@@ -26,7 +25,7 @@ export class ClientController {
         city,
         district,
         sector,
-        contactPerson, 
+        contactPerson,
         businessRegistration,
         emergencyContact,
         postalCode,
@@ -40,15 +39,15 @@ export class ClientController {
       const payload: AdminCreateClientAndUserPayload = {
         newUser: {
           username: username,
-          email: email, 
+          email: email,
           password: password,
         },
         clientProfile: {
-          clientType: clientType as ClientType, 
-          companyName: companyName,    
-          firstName: firstName,        
-          lastName: lastName,          
-          name: name, 
+          clientType: clientType as ClientType,
+          companyName: companyName,
+          firstName: firstName,
+          lastName: lastName,
+          name: name,
           ruc: ruc,
           dni: dni,
           phone: phone,
@@ -56,7 +55,7 @@ export class ClientController {
           city: city,
           district: district,
           sector: sector,
-          email: email, 
+          email: email,
           contactPerson: contactPerson,
           businessRegistration: businessRegistration,
           emergencyContact: emergencyContact,
@@ -67,7 +66,9 @@ export class ClientController {
           discount: discount,
         }
       };
-      
+
+      // Validaciones básicas (Zod es el principal validador a través del middleware)
+      // Estas son una segunda capa opcional o para lógica muy simple.
       if (!payload.newUser.username || !payload.newUser.email || !payload.newUser.password) {
         res.status(400).json({ success: false, message: "El nombre de usuario, email y contraseña son requeridos para la nueva cuenta del cliente." });
         return;
@@ -76,34 +77,40 @@ export class ClientController {
         res.status(400).json({ success: false, message: "El tipo de cliente (clientType) es requerido." });
         return;
       }
-      if (payload.clientProfile.clientType === ClientType.COMPANY && !(payload.clientProfile.companyName || payload.clientProfile.name) ) {
-          res.status(400).json({ success: false, message: "El nombre de la empresa (companyName o name) es requerido para clientes de tipo EMPRESA." });
-          return;
+      // Las validaciones condicionales más complejas (ej. companyName si es COMPANY)
+      // deberían estar principalmente en tu CreateClientSchema de Zod.
+      // Ejemplo:
+      if (payload.clientProfile.clientType === ClientType.COMPANY && !(payload.clientProfile.companyName || payload.clientProfile.name)) {
+        res.status(400).json({ success: false, message: "El nombre de la empresa (companyName o name) es requerido para clientes de tipo EMPRESA." });
+        return;
       }
       if (payload.clientProfile.clientType === ClientType.PERSONAL && !(payload.clientProfile.firstName || payload.clientProfile.name)) {
-          res.status(400).json({ success: false, message: "El nombre (firstName o name) es requerido para clientes de tipo PERSONAL." });
-          return;
+        res.status(400).json({ success: false, message: "El nombre (firstName o name) es requerido para clientes de tipo PERSONAL." });
+        return;
       }
-      
+
+      // Llamamos al NUEVO método del servicio que crea User y Client
       const client = await ClientService.adminCreatesClientWithUser(payload);
 
       res.status(201).json({
         success: true,
-        message: "Cliente y cuenta de usuario creados exitosamente",
+        message: "Cliente y cuenta de usuario creados exitosamente", // Mensaje actualizado
         data: client,
       });
-    } catch (error: any) { 
+    } catch (error: any) {
       console.error("Error en ClientController.create:", error);
+      // Manejo de errores mejorado para mensajes específicos del servicio
       if (error.message && (
-          error.message.includes('ya existe') || 
-          error.message.includes('registrado') || 
-          error.message.includes('requerida') || 
-          error.message.includes('Error al crear el cliente y su usuario') ||
-          error.message.toLowerCase().includes('inválido') 
-        )) {
+        error.message.includes('ya existe') ||
+        error.message.includes('registrado') ||
+        error.message.includes('requerida') ||
+        error.message.includes('Error al crear el cliente y su usuario') ||
+        error.message.toLowerCase().includes('inválido')
+      )) {
         res.status(400).json({ success: false, message: error.message });
         return;
       }
+      // Error genérico si no es uno de los anteriores
       res.status(500).json({
         success: false,
         message: "Error interno del servidor al procesar la creación del cliente.",
@@ -268,12 +275,44 @@ export class ClientController {
    * Delete client (soft delete)
    * DELETE /api/clients/:id
    */
+  // static async delete(req: Request, res: Response): Promise<void> {
+  //   try {
+  //     const { id } = req.params;
+  //     const success = await ClientService.deleteClient(id);
+
+  //     if (!success) {
+  //       res.status(404).json({
+  //         success: false,
+  //         message: "Cliente no encontrado para eliminar",
+  //       });
+  //       return;
+  //     }
+
+  //     res.status(200).json({
+  //       success: true,
+  //       message: "Cliente marcado como inactivo exitosamente",
+  //     });
+  //   } catch (error) {
+  //     console.error("Error deleting client:", error);
+  //     res.status(500).json({
+  //       success: false,
+  //       message: "Error interno del servidor al eliminar cliente",
+  //       error: error instanceof Error ? error.message : "Unknown error",
+  //     });
+  //   }
+  // }
+
+  /**
+   * Delete client (AHORA ES HARD DELETE)
+   * DELETE /api/clients/:id
+   */
+
   static async delete(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const success = await ClientService.deleteClient(id);
+      const success = await ClientService.deleteClient(id); // Llama al método que ahora hace hard delete
 
-      if (!success) {
+      if (!success) { // Esto podría no alcanzarse si el servicio lanza error en lugar de devolver false
         res.status(404).json({
           success: false,
           message: "Cliente no encontrado para eliminar",
@@ -281,19 +320,34 @@ export class ClientController {
         return;
       }
 
-      res.status(200).json({
+      res.status(200).json({ // O 204 No Content si no devuelves cuerpo
         success: true,
-        message: "Cliente marcado como inactivo exitosamente",
+        message: "Cliente y usuario asociado (si aplica) eliminados exitosamente",
       });
-    } catch (error) {
-      console.error("Error deleting client:", error);
+    } catch (error: any) {
+      console.error("Error en ClientController.delete:", error);
+      if (error.message && error.message.includes('registros asociados')) {
+        res.status(400).json({ // 400 Bad Request o 409 Conflict podrían ser apropiados
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+      if (error.message && error.message.includes('Cliente no encontrado')) { // Si el servicio lanza esto
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: "Error interno del servidor al eliminar cliente",
-        error: error instanceof Error ? error.message : "Unknown error",
+        errorDetail: error.message || "Error desconocido",
       });
     }
   }
+
 
   /**
    * Get client statistics

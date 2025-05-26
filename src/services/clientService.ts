@@ -28,15 +28,19 @@ export interface CreateClientData {
   lastName?: string;
 }
 
+// En src/services/clientService.ts (al principio del archivo, con tus otras interfaces)
+
 export interface UpdateClientData {
+  // Campos del Perfil del Cliente
   companyName?: string;
-  contactPerson?: string;
-  businessRegistration?: string;
+  contactPerson?: string; // Asegúrate que tu frontend pueda enviar esto si es diferente al nombre del usuario
+  businessRegistration?: string; // El backend lo llenará con ruc o dni
   phone?: string;
-  email?: string;
+  email?: string; // Email de contacto del perfil (si es diferente al del usuario)
   emergencyContact?: string;
   address?: string;
   city?: string;
+  district?: string;
   postalCode?: string;
   clientType?: ClientType;
   status?: ClientStatus;
@@ -45,12 +49,22 @@ export interface UpdateClientData {
   notes?: string;
   isVip?: boolean;
   discount?: number;
-  // Campos que tu frontend podría estar enviando y que tu modelo Client podría tener
-  name?: string;
-  ruc?: string;
-  dni?: string;
+  name?: string; // Nombre general si lo usas para mapear companyName o firstName
   sector?: string;
-  lastName?: string;
+
+  // Campos que vienen del frontend y que necesitan mapeo
+  ruc?: string;  // Para mapear a businessRegistration si es COMPANY
+  dni?: string;  // Para mapear a businessRegistration si es PERSONAL
+  firstName?: string; // Para mapear a name/contactPerson si es PERSONAL
+  lastName?: string;  // Para mapear a contactPerson si es PERSONAL
+
+  // Campos OPCIONALES para actualizar el USUARIO asociado al cliente
+  user?: {
+    username?: string;
+    email?: string; // Email de login del usuario
+    password?: string; // Nueva contraseña (debe hashearse)
+    isActive?: boolean;
+  };
 }
 
 export interface ClientFilters {
@@ -124,10 +138,6 @@ export interface AdminCreateClientAndUserPayload {
 // --- FIN DE LA NUEVA INTERFAZ ---
 
 export class ClientService {
-  // --- MÉTODO NUEVO AÑADIDO ---
-  /**
-   * Crea un nuevo cliente Y su cuenta de usuario. Usado por un administrador.
-   */
   static async adminCreatesClientWithUser(payload: AdminCreateClientAndUserPayload): Promise<ClientWithRelations> {
     try {
       if (!payload.newUser.password) {
@@ -135,15 +145,17 @@ export class ClientService {
       }
       const hashedPassword = await hashPassword(payload.newUser.password);
 
+      console.log(">>> [SERVICE] Creando nuevo usuario para cliente con datos:", payload.newUser.username, payload.newUser.email);
       const newClientUser = await prisma.user.create({
         data: {
           username: payload.newUser.username,
           email: payload.newUser.email,
-          passwordHash: hashedPassword, // Asumiendo que tu campo en schema.prisma se llama 'passwordHash'
+          passwordHash: hashedPassword, // Confirma que 'passwordHash' es el nombre en tu schema.prisma
           role: UserRole.CLIENT,
           isActive: true,
         }
       });
+      console.log("<<< [SERVICE] Usuario para cliente CREADO:", JSON.stringify(newClientUser, null, 2));
 
       const clientDataForDb: any = {
         userId: newClientUser.id,
@@ -152,43 +164,48 @@ export class ClientService {
         email: payload.clientProfile.email || payload.newUser.email,
         address: payload.clientProfile.address,
         city: payload.clientProfile.city,
-        district: payload.clientProfile.district,
+        district: payload.clientProfile.district, // Correcto si ya lo añadiste al schema
         status: ClientStatus.ACTIVE,
-        // contactPerson: payload.clientProfile.contactPerson ?? null, // Se manejará abajo
-        businessRegistration: payload.clientProfile.businessRegistration ?? null, // Se manejará abajo
+        // contactPerson y companyName se asignarán abajo
+        businessRegistration: null, // Se establecerá abajo
         emergencyContact: payload.clientProfile.emergencyContact ?? null,
         postalCode: payload.clientProfile.postalCode ?? null,
         preferredSchedule: payload.clientProfile.preferredSchedule ?? null,
         notes: payload.clientProfile.notes ?? null,
         isVip: payload.clientProfile.isVip ?? false,
         discount: payload.clientProfile.discount ?? 0.0,
-        // ELIMINAMOS: name: payload.clientProfile.name ?? null, 
+        sector: null, // Se establecerá abajo si aplica y existe en el schema
       };
 
       if (payload.clientProfile.clientType === ClientType.COMPANY) {
         // Para empresas, el nombre va a 'companyName'
         clientDataForDb.companyName = payload.clientProfile.companyName || payload.clientProfile.name;
         clientDataForDb.businessRegistration = payload.clientProfile.ruc;
-        clientDataForDb.sector = payload.clientProfile.sector;
-        // Puedes establecer contactPerson si viene en el payload, sino será null
+        // Solo asigna 'sector' si realmente existe en tu modelo Client
+        if (payload.clientProfile.sector !== undefined) { // Y si el campo existe en el schema
+          clientDataForDb.sector = payload.clientProfile.sector;
+        }
+        // El contactPerson para una empresa es opcional y puede venir del formulario
         clientDataForDb.contactPerson = payload.clientProfile.contactPerson ?? null;
 
       } else { // PERSONAL
-        // Para personas, el nombre completo o el nombre principal va a 'contactPerson'
-        // y no usamos 'companyName'.
+        // Para personas, el nombre completo va a 'contactPerson'
         let fullName = '';
         if (payload.clientProfile.firstName || payload.clientProfile.lastName) {
           fullName = `${payload.clientProfile.firstName || ''} ${payload.clientProfile.lastName || ''}`.trim();
-        } else if (payload.clientProfile.name) {
+        } else if (payload.clientProfile.name) { // Usar 'name' del payload si firstName/lastName no están
           fullName = payload.clientProfile.name;
         }
         clientDataForDb.contactPerson = fullName || payload.clientProfile.contactPerson || null;
 
         clientDataForDb.businessRegistration = payload.clientProfile.dni;
-        // Asegúrate de que companyName sea null o no se defina para clientes personales si no aplica
+        // Asegurarse de que companyName y sector sean null para clientes personales
         clientDataForDb.companyName = null;
+        clientDataForDb.sector = null;
       }
 
+
+      console.log(">>> [SERVICE] Creando perfil de cliente con datos (clientDataForDb):", JSON.stringify(clientDataForDb, null, 2));
       const client = await prisma.client.create({
         data: clientDataForDb,
         include: {
@@ -204,14 +221,22 @@ export class ClientService {
           _count: { select: { services: true, equipment: true, quotes: true } }
         }
       });
+      console.log("<<< [SERVICE] Perfil de cliente CREADO:", JSON.stringify(client, null, 2));
+
       return client as unknown as ClientWithRelations;
     } catch (error: any) {
-      console.error('Error en adminCreatesClientWithUser:', error);
+      console.error('### ERROR CAPTURADO en adminCreatesClientWithUser (clientService.ts):', error);
+      // ... (tu manejo de errores P2002 existente) ...
       if (error.code === 'P2002' && error.meta?.target) {
         const field = (error.meta.target as string[]).join(', ');
         if (field.includes('username')) throw new Error(`El nombre de usuario '${payload.newUser.username}' ya existe.`);
         if (field.includes('email')) throw new Error(`El email '${payload.newUser.email}' ya está registrado.`);
         throw new Error(`El campo '${field}' ya existe y debe ser único.`);
+      }
+      // Para otros errores de Prisma o errores generales
+      const prismaError = error.message?.match(/Unknown argument `(\w+)`/);
+      if (prismaError && prismaError[1]) {
+        throw new Error(`Error de Prisma: El campo '${prismaError[1]}' es desconocido en el modelo Client.`);
       }
       throw new Error('Error al crear el cliente y su usuario: ' + (error.message || error));
     }
@@ -512,61 +537,223 @@ export class ClientService {
   /**
    * Update client profile
    */
-  static async updateClient(id: string, data: UpdateClientData): Promise<Client | null> {
-    try {
-      const existingClient = await prisma.client.findUnique({
-        where: { id }
-      });
+  // En src/services/clientService.ts (dentro de la clase ClientService)
 
-      if (!existingClient) {
-        return null;
+  // ... (asegúrate de tener los imports de Prisma y hashPassword) ...
+
+  static async updateClient(clientId: string, dataFromController: UpdateClientData): Promise<ClientWithRelations | null> {
+    try {
+      const { user: userDataToUpdate, ...clientProfilePayload } = dataFromController;
+
+      console.log(">>> [SERVICE UPDATE] Datos de perfil recibidos:", JSON.stringify(clientProfilePayload, null, 2));
+      if (userDataToUpdate) {
+        console.log(">>> [SERVICE UPDATE] Datos de usuario recibidos:", JSON.stringify(userDataToUpdate, null, 2));
       }
 
-      const client = await prisma.client.update({
-        where: { id },
-        data: data,
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              email: true,
-              isActive: true,
-              role: true
+      const updatedClient = await prisma.$transaction(async (tx) => {
+        const existingClient = await tx.client.findUnique({
+          where: { id: clientId },
+          include: { user: true }
+        });
+
+        if (!existingClient) {
+          throw new Error('Cliente no encontrado para actualizar.');
+        }
+
+        // 1. Actualizar el Usuario si se proporcionaron datos de usuario
+        if (userDataToUpdate && Object.keys(userDataToUpdate).length > 0) {
+          const userUpdateData: any = {};
+          if (userDataToUpdate.username) userUpdateData.username = userDataToUpdate.username;
+          if (userDataToUpdate.email) userUpdateData.email = userDataToUpdate.email;
+          if (userDataToUpdate.password) {
+            if (userDataToUpdate.password.length < 6) { // Ejemplo de validación
+              throw new Error('La nueva contraseña debe tener al menos 6 caracteres.');
             }
+            userUpdateData.passwordHash = await hashPassword(userDataToUpdate.password); // Asume campo passwordHash
+          }
+          if (userDataToUpdate.isActive !== undefined) userUpdateData.isActive = userDataToUpdate.isActive;
+
+          if (Object.keys(userUpdateData).length > 0) {
+            console.log(">>> [SERVICE - TX UPDATE] Actualizando usuario con:", JSON.stringify(userUpdateData, null, 2));
+            await tx.user.update({
+              where: { id: existingClient.userId },
+              data: userUpdateData,
+            });
+            console.log("<<< [SERVICE - TX UPDATE] Usuario actualizado.");
           }
         }
+
+        // 2. Preparar y Actualizar el Perfil del Cliente
+        const clientDataForDbUpdate: any = {};
+
+        // Asignar campos directos del perfil que SÍ existen en el modelo Client
+        // y que vienen en clientProfilePayload
+        if (clientProfilePayload.phone !== undefined) clientDataForDbUpdate.phone = clientProfilePayload.phone;
+        // El email del perfil del cliente (diferente al email de login del usuario si es necesario)
+        if (clientProfilePayload.email !== undefined) clientDataForDbUpdate.email = clientProfilePayload.email;
+        if (clientProfilePayload.address !== undefined) clientDataForDbUpdate.address = clientProfilePayload.address;
+        if (clientProfilePayload.city !== undefined) clientDataForDbUpdate.city = clientProfilePayload.city;
+        if (clientProfilePayload.district !== undefined) clientDataForDbUpdate.district = clientProfilePayload.district;
+        if (clientProfilePayload.postalCode !== undefined) clientDataForDbUpdate.postalCode = clientProfilePayload.postalCode;
+        if (clientProfilePayload.clientType !== undefined) clientDataForDbUpdate.clientType = clientProfilePayload.clientType;
+        if (clientProfilePayload.status !== undefined) clientDataForDbUpdate.status = clientProfilePayload.status;
+        if (clientProfilePayload.preferredSchedule !== undefined) clientDataForDbUpdate.preferredSchedule = clientProfilePayload.preferredSchedule;
+        if (clientProfilePayload.nextServiceDate !== undefined) clientDataForDbUpdate.nextServiceDate = clientProfilePayload.nextServiceDate;
+        if (clientProfilePayload.notes !== undefined) clientDataForDbUpdate.notes = clientProfilePayload.notes;
+        if (clientProfilePayload.isVip !== undefined) clientDataForDbUpdate.isVip = clientProfilePayload.isVip;
+        if (clientProfilePayload.discount !== undefined) clientDataForDbUpdate.discount = clientProfilePayload.discount;
+        if (clientProfilePayload.contactPerson !== undefined) clientDataForDbUpdate.contactPerson = clientProfilePayload.contactPerson;
+        // No incluimos businessRegistration aquí directamente, se setea abajo
+
+        // Lógica de mapeo para companyName, name, ruc, dni, sector
+        const typeToUse = clientProfilePayload.clientType || existingClient.clientType;
+
+        if (typeToUse === ClientType.COMPANY) {
+          if (clientProfilePayload.companyName !== undefined || clientProfilePayload.name !== undefined) {
+            clientDataForDbUpdate.companyName = clientProfilePayload.companyName || clientProfilePayload.name;
+          }
+          if (clientProfilePayload.ruc !== undefined) {
+            clientDataForDbUpdate.businessRegistration = clientProfilePayload.ruc;
+          }
+          if (clientProfilePayload.sector !== undefined && existingClient.sector !== undefined) { // Solo si el campo 'sector' existe en el modelo Client
+            clientDataForDbUpdate.sector = clientProfilePayload.sector;
+          }
+        } else if (typeToUse === ClientType.PERSONAL) {
+          // Para personal, el nombre principal va a contactPerson o name (según tu modelo)
+          let fullNameForContact = clientDataForDbUpdate.contactPerson; // Mantener si ya se asignó arriba
+          if (clientProfilePayload.firstName || clientProfilePayload.lastName) {
+            fullNameForContact = `${clientProfilePayload.firstName || ''} ${clientProfilePayload.lastName || ''}`.trim();
+          } else if (clientProfilePayload.name) {
+            fullNameForContact = clientProfilePayload.name;
+          }
+          if (fullNameForContact) clientDataForDbUpdate.contactPerson = fullNameForContact; // Solo si hay algo que poner
+
+          // Si tu modelo Client tiene un campo 'name' para personas:
+          // clientDataForDbUpdate.name = clientProfilePayload.firstName || clientProfilePayload.name;
+
+          if (clientProfilePayload.dni !== undefined) {
+            clientDataForDbUpdate.businessRegistration = clientProfilePayload.dni;
+          }
+        }
+
+        console.log(">>> [SERVICE - TX UPDATE] Actualizando perfil de cliente con (clientDataForDbUpdate):", JSON.stringify(clientDataForDbUpdate, null, 2));
+        const client = await tx.client.update({
+          where: { id: clientId },
+          data: clientDataForDbUpdate,
+          include: {
+            user: {
+              select: { id: true, username: true, email: true, isActive: true, role: true }
+            },
+            _count: { select: { services: true, equipment: true, quotes: true } }
+          }
+        });
+        console.log("<<< [SERVICE - TX UPDATE] Perfil de cliente actualizado.");
+        return client;
       });
-      return client;
-    } catch (error) {
-      console.error('Error updating client:', error);
-      throw error;
+
+      return updatedClient as ClientWithRelations;
+    } catch (error: any) {
+      console.error('### ERROR CAPTURADO en updateClient (clientService.ts):', error);
+      if (error.code === 'P2002' && error.meta?.target) {
+        const field = (error.meta.target as string[]).join(', ');
+        throw new Error(`Error de unicidad al actualizar: el campo '${field}' ya existe.`);
+      }
+      // Para otros errores de Prisma
+      const prismaError = error.message?.match(/Unknown argument `(\w+)`/);
+      if (prismaError && prismaError[1]) {
+        throw new Error(`Error de Prisma en Update: El campo '${prismaError[1]}' es desconocido en el modelo Client.`);
+      }
+      throw new Error(error.message || 'Error al actualizar el cliente.');
     }
   }
 
   /**
    * Delete client (soft delete by setting status to INACTIVE)
    */
+  // static async deleteClient(id: string): Promise<boolean> {
+  //   try {
+  //     const existingClient = await prisma.client.findUnique({
+  //       where: { id }
+  //     });
+
+  //     if (!existingClient) {
+  //       return false;
+  //     }
+
+  //     await prisma.client.update({
+  //       where: { id },
+  //       data: {
+  //         status: ClientStatus.INACTIVE
+  //       }
+  //     });
+  //     return true;
+  //   } catch (error) {
+  //     console.error('Error deleting client:', error);
+  //     throw error;
+  //   }
+  // }
+
+  /**
+ * PERMANENTLY delete a client AND its associated user (if the user has CLIENT role).
+ * ¡CUIDADO! Esta acción es irreversible.
+ */
   static async deleteClient(id: string): Promise<boolean> {
     try {
-      const existingClient = await prisma.client.findUnique({
-        where: { id }
+      const clientToDelete = await prisma.client.findUnique({
+        where: { id },
+        select: { userId: true } // Obtenemos el userId para saber qué usuario borrar
       });
 
-      if (!existingClient) {
-        return false;
+      if (!clientToDelete) {
+        console.log(`[SERVICE_DELETE] Cliente con ID ${id} no encontrado.`);
+        return false; // Cliente no encontrado, nada que eliminar
       }
 
-      await prisma.client.update({
-        where: { id },
-        data: {
-          status: ClientStatus.INACTIVE
+      console.log(`[SERVICE_DELETE] Iniciando eliminación para cliente ID: ${id}, usuario asociado ID: ${clientToDelete.userId}`);
+
+      await prisma.$transaction(async (tx) => {
+        // 1. Intentar eliminar el perfil del cliente primero.
+        // Si hay relaciones (servicios, cotizaciones) que no tienen onDelete: Cascade,
+        // esto podría fallar aquí si esos registros relacionados existen.
+        console.log(`[SERVICE_DELETE - TX] Intentando eliminar perfil del cliente ID: ${id}`);
+        await tx.client.delete({
+          where: { id },
+        });
+        console.log(`[SERVICE_DELETE - TX] Perfil del cliente ID: ${id} eliminado.`);
+
+        // 2. Eliminar el registro de Usuario asociado al cliente.
+        const userAssociated = await tx.user.findUnique({
+          where: { id: clientToDelete.userId }
+        });
+
+        if (userAssociated) {
+          // Condición de seguridad: Solo borrar el usuario si es un 'CLIENT'.
+          // Esto previene borrar accidentalmente un ADMIN o TECHNICIAN si por error
+          // un perfil de cliente se asoció a uno de ellos.
+          if (userAssociated.role === 'CLIENT') { // O UserRole.CLIENT si usas el enum
+            console.log(`[SERVICE_DELETE - TX] Intentando eliminar usuario asociado ID: ${clientToDelete.userId}, Username: ${userAssociated.username}`);
+            await tx.user.delete({
+              where: { id: clientToDelete.userId },
+            });
+            console.log(`[SERVICE_DELETE - TX] Usuario asociado ID: ${clientToDelete.userId} eliminado.`);
+          } else {
+            console.warn(`[SERVICE_DELETE - TX] El usuario ${userAssociated.username} (ID: ${clientToDelete.userId}) asociado al cliente ${id} no es ROL CLIENTE (su rol es ${userAssociated.role}). No se eliminará el usuario.`);
+          }
+        } else {
+          console.warn(`[SERVICE_DELETE - TX] No se encontró un usuario asociado con ID: ${clientToDelete.userId} para el cliente ${id}. Solo se eliminó el perfil del cliente.`);
         }
       });
+
+      console.log(`[SERVICE_DELETE] Eliminación completa y exitosa para cliente ID: ${id}`);
       return true;
-    } catch (error) {
-      console.error('Error deleting client:', error);
-      throw error;
+    } catch (error: any) {
+      console.error('### ERROR CAPTURADO en deleteClient (clientService.ts):', error);
+      if (error.code === 'P2003' || (error.message && error.message.toLowerCase().includes('foreign key constraint'))) {
+        // Error P2003: Foreign key constraint failed on the field: `...`
+        // Esto significa que hay otros registros (ej. Servicios, Cotizaciones) que dependen de este Cliente.
+        throw new Error('No se puede eliminar el cliente porque tiene registros asociados (ej. servicios, cotizaciones). Primero debe eliminar o reasignar esos registros.');
+      }
+      throw new Error('Error al eliminar el cliente: ' + error.message);
     }
   }
 
