@@ -18,9 +18,14 @@ export const authenticate = (
 ): void => {
   try {
     const authHeader = req.headers.authorization;
+    console.log('🔥 AUTH MIDDLEWARE - Authorization header:', authHeader?.substring(0, 30) + '...');
+    
     const token = extractTokenFromHeader(authHeader);
+    console.log('🔥 AUTH MIDDLEWARE - Token extracted:', !!token);
+    console.log('🔥 AUTH MIDDLEWARE - Token preview:', token?.substring(0, 20) + '...');
 
     if (!token) {
+      console.log('🔥 AUTH MIDDLEWARE - No token found');
       res.status(401).json({
         success: false,
         message: 'Token de acceso requerido',
@@ -31,13 +36,16 @@ export const authenticate = (
 
     // Verify and decode token
     const decoded = verifyToken(token);
+    console.log('🔥 AUTH MIDDLEWARE - Token decoded successfully:', decoded);
+    console.log('🔥 AUTH MIDDLEWARE - User ID from token:', decoded.userId || (decoded as any).id);
+    console.log('🔥 AUTH MIDDLEWARE - User role from token:', decoded.role);
     
     // Add user data to request
     req.user = decoded;
     
     next();
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('🔥 AUTH MIDDLEWARE - Authentication error:', error);
     
     res.status(401).json({
       success: false,
