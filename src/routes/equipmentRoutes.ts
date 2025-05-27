@@ -44,7 +44,7 @@ router.put('/:id',
 );
 
 router.delete('/:id', 
-  authorize('ADMIN'), 
+  authorize('ADMIN', 'CLIENT'), 
   validateParams(EquipmentIdSchema),
   EquipmentController.delete
 );
