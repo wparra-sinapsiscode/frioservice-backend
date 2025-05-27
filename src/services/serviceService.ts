@@ -425,7 +425,6 @@ export class ServiceService {
       // Guardar notas del técnico
       if (completionData.technicianNotes) {
         updateData.technicianNotes = completionData.technicianNotes;
-        updateData.notes = completionData.technicianNotes; // Mantener compatibilidad
       }
 
       // Guardar firma del cliente
