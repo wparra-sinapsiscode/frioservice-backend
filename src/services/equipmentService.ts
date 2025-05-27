@@ -13,6 +13,7 @@ export interface CreateEquipmentData {
   location?: string;
   installDate?: Date;
   warrantyExpiry?: Date;
+  status?: EquipmentStatus;
   notes?: string;
 }
 
@@ -64,6 +65,7 @@ export class EquipmentService {
           location: data.location ?? null,
           installDate: data.installDate ?? null,
           warrantyExpiry: data.warrantyExpiry ?? null,
+          status: data.status ?? EquipmentStatus.ACTIVE,
           notes: data.notes ?? null
         },
         include: {

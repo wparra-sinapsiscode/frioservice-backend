@@ -1,0 +1,21 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const quoteController_1 = require("../controllers/quoteController");
+const auth_1 = require("../middleware/auth");
+const validation_1 = require("../middleware/validation");
+const quoteValidators_1 = require("../validators/quoteValidators");
+const router = (0, express_1.Router)();
+router.use(auth_1.authenticate);
+router.post('/', (0, auth_1.authorize)('ADMIN', 'TECHNICIAN'), (0, validation_1.validateBody)(quoteValidators_1.CreateQuoteSchema), quoteController_1.QuoteController.create);
+router.get('/', (0, auth_1.authorize)('ADMIN', 'TECHNICIAN', 'CLIENT'), (0, validation_1.validateQuery)(quoteValidators_1.QuoteFiltersSchema), quoteController_1.QuoteController.getAll);
+router.get('/expired', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateQuery)(quoteValidators_1.PaginationSchema), quoteController_1.QuoteController.getExpired);
+router.get('/:id', (0, auth_1.authorize)('ADMIN', 'TECHNICIAN', 'CLIENT'), (0, validation_1.validateParams)(quoteValidators_1.QuoteIdSchema), quoteController_1.QuoteController.getById);
+router.put('/:id', (0, auth_1.authorize)('ADMIN', 'TECHNICIAN'), (0, validation_1.validateParams)(quoteValidators_1.QuoteIdSchema), (0, validation_1.validateBody)(quoteValidators_1.UpdateQuoteSchema), quoteController_1.QuoteController.update);
+router.delete('/:id', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateParams)(quoteValidators_1.QuoteIdSchema), quoteController_1.QuoteController.delete);
+router.post('/:id/approve', (0, auth_1.authorize)('ADMIN', 'CLIENT'), (0, validation_1.validateParams)(quoteValidators_1.QuoteIdSchema), (0, validation_1.validateBody)(quoteValidators_1.QuoteActionSchema), quoteController_1.QuoteController.approve);
+router.post('/:id/reject', (0, auth_1.authorize)('ADMIN', 'CLIENT'), (0, validation_1.validateParams)(quoteValidators_1.QuoteIdSchema), (0, validation_1.validateBody)(quoteValidators_1.QuoteActionSchema), quoteController_1.QuoteController.reject);
+router.get('/client/:clientId', (0, auth_1.authorize)('ADMIN', 'CLIENT'), (0, validation_1.validateParams)(quoteValidators_1.ClientIdSchema), (0, validation_1.validateQuery)(quoteValidators_1.QuoteFiltersSchema), quoteController_1.QuoteController.getByClient);
+router.post('/request-service', (0, auth_1.authorize)('CLIENT'), (0, validation_1.validateBody)(quoteValidators_1.CreateQuoteSchema), quoteController_1.QuoteController.createServiceRequest);
+exports.default = router;
+//# sourceMappingURL=quoteRoutes.js.map

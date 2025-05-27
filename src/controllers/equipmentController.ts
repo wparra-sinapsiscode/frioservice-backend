@@ -19,6 +19,7 @@ export class EquipmentController {
         location,
         installDate,
         warrantyExpiry,
+        status,
         notes
       } = req.body;
 
@@ -65,6 +66,7 @@ export class EquipmentController {
         serialNumber,
         type,
         location,
+        status,
         notes
       };
       if (installDate) {
