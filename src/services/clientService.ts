@@ -887,7 +887,11 @@ export class ClientService {
         },
         include: {
           technician: {
-            include: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              specialty: true,
               user: {
                 select: {
                   id: true,
@@ -908,7 +912,8 @@ export class ClientService {
           const user = tech.user;
           technicianMap.set(tech.id, {
             id: tech.id,
-            name: user.username,
+            name: `${tech.firstName} ${tech.lastName}`,
+            specialty: tech.specialty,
             email: user.email
           });
         }

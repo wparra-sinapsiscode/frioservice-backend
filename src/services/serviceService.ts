@@ -399,6 +399,19 @@ export class ServiceService {
     images?: string[];
   }) {
     try {
+      // 1. Obtener el servicio actual con equipos
+      const currentService = await prisma.service.findUnique({
+        where: { id: serviceId },
+        include: {
+          client: true,
+          technician: true
+        }
+      });
+
+      if (!currentService) {
+        throw new Error('Servicio no encontrado');
+      }
+
       const updateData: any = {
         status: ServiceStatus.COMPLETED,
         completedAt: new Date()
@@ -412,7 +425,7 @@ export class ServiceService {
       // Guardar tiempo gastado
       if (typeof completionData.timeSpent === 'number') {
         updateData.actualDuration = completionData.timeSpent;
-        updateData.timeSpent = completionData.timeSpent; // Agregar campo timeSpent también
+        updateData.timeSpent = completionData.timeSpent;
       }
 
       // Guardar materiales utilizados
@@ -439,11 +452,60 @@ export class ServiceService {
 
       console.log('🔥 ServiceService.completeService - Datos a actualizar:', updateData);
 
-      const service = await this.updateService(serviceId, updateData);
+      // 2. Iniciar transacción para actualizar múltiples tablas
+      const result = await prisma.$transaction(async (tx) => {
+        // 2.1 Completar el servicio
+        const updatedService = await tx.service.update({
+          where: { id: serviceId },
+          data: updateData,
+          include: {
+            client: true,
+            technician: true,
+            transactions: true
+          }
+        });
 
-      console.log('🔥 ServiceService.completeService - Servicio actualizado:', service);
+        // 2.2 Calcular y registrar costos de materiales
+        if (completionData.materialsUsed && Array.isArray(completionData.materialsUsed)) {
+          const totalMaterialCost = completionData.materialsUsed.reduce((total: number, material: any) => {
+            return total + (material.cost || 0);
+          }, 0);
 
-      return service;
+          if (totalMaterialCost > 0) {
+            await tx.transaction.create({
+              data: {
+                serviceId: serviceId,
+                type: 'MATERIAL_COST',
+                amount: totalMaterialCost,
+                description: `Costos de materiales - ${completionData.materialsUsed.length} items`
+              }
+            });
+            console.log(`💰 Ingreso registrado: $${totalMaterialCost} por materiales`);
+          }
+        }
+
+        // 2.3 Actualizar estado de equipos a ACTIVE
+        if (currentService.equipmentIds && currentService.equipmentIds.length > 0) {
+          const updatedEquipment = await tx.equipment.updateMany({
+            where: {
+              id: {
+                in: currentService.equipmentIds
+              },
+              status: 'BROKEN' // Solo cambiar los que están broken
+            },
+            data: {
+              status: 'ACTIVE'
+            }
+          });
+          console.log(`🔧 ${updatedEquipment.count} equipos cambiados a ACTIVE`);
+        }
+
+        return updatedService;
+      });
+
+      console.log('🔥 ServiceService.completeService - Servicio completado con transacciones:', result);
+
+      return result;
     } catch (error) {
       console.error('Error en ServiceService.completeService:', error);
       throw error;
