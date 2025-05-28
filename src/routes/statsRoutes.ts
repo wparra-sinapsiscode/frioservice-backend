@@ -83,6 +83,17 @@ router.get('/overview',
 );
 
 /**
+ * Obtiene transacciones recientes
+ * GET /api/stats/transactions/recent?limit=10
+ * Requiere: ADMIN
+ */
+router.get('/transactions/recent',
+  authorize('ADMIN'),
+  validateQuery(z.object({ limit: z.string().optional() }).optional()),
+  StatsController.getRecentTransactions
+);
+
+/**
  * Obtiene métricas en tiempo real
  * GET /api/stats/realtime
  * Requiere: ADMIN

@@ -25,7 +25,9 @@ export class StatsService {
         servicesPrevMonth,
         quotesCount,
         monthlyIncome,
-        prevMonthIncome
+        prevMonthIncome,
+        monthlyTransactions,
+        prevMonthTransactions
       ] = await Promise.all([
         // Servicios agrupados por estado
         prisma.service.groupBy({
@@ -92,6 +94,28 @@ export class StatsService {
             }
           },
           _sum: { amount: true }
+        }),
+
+        // Ingresos por transacciones este mes (materiales, etc.)
+        prisma.transaction.aggregate({
+          where: {
+            createdAt: {
+              gte: firstDayOfMonth,
+              lte: now
+            }
+          },
+          _sum: { amount: true }
+        }),
+
+        // Ingresos por transacciones mes anterior
+        prisma.transaction.aggregate({
+          where: {
+            createdAt: {
+              gte: firstDayOfPrevMonth,
+              lte: lastDayOfPrevMonth
+            }
+          },
+          _sum: { amount: true }
         })
       ]);
 
@@ -106,8 +130,12 @@ export class StatsService {
         ? ((servicesThisMonth - servicesPrevMonth) / servicesPrevMonth) * 100 
         : 0;
 
-      const incomeGrowth = prevMonthIncome._sum.amount 
-        ? ((Number(monthlyIncome._sum.amount || 0) - Number(prevMonthIncome._sum.amount)) / Number(prevMonthIncome._sum.amount)) * 100
+      // Calcular ingresos totales (cotizaciones + transacciones)
+      const totalMonthlyIncome = Number(monthlyIncome._sum.amount || 0) + Number(monthlyTransactions._sum.amount || 0);
+      const totalPrevMonthIncome = Number(prevMonthIncome._sum.amount || 0) + Number(prevMonthTransactions._sum.amount || 0);
+
+      const incomeGrowth = totalPrevMonthIncome > 0 
+        ? ((totalMonthlyIncome - totalPrevMonthIncome) / totalPrevMonthIncome) * 100 
         : 0;
 
       return {
@@ -125,9 +153,13 @@ export class StatsService {
         totalClients: clientsCount,
         totalTechnicians: techniciansAvailable,
         monthlyIncome: {
-          current: Number(monthlyIncome._sum.amount || 0),
-          previous: Number(prevMonthIncome._sum.amount || 0),
-          growth: Number(incomeGrowth.toFixed(2))
+          current: totalMonthlyIncome,
+          previous: totalPrevMonthIncome,
+          growth: Number(incomeGrowth.toFixed(2)),
+          breakdown: {
+            quotes: Number(monthlyIncome._sum.amount || 0),
+            materials: Number(monthlyTransactions._sum.amount || 0)
+          }
         },
         completedServicesThisMonth: {
           current: servicesThisMonth,
@@ -141,6 +173,41 @@ export class StatsService {
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
       throw new Error('Error al obtener estadísticas del dashboard');
+    }
+  }
+
+  /**
+   * Obtener transacciones recientes
+   */
+  static async getRecentTransactions(limit = 10) {
+    try {
+      const transactions = await prisma.transaction.findMany({
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          service: {
+            include: {
+              client: {
+                select: {
+                  companyName: true,
+                  contactPerson: true
+                }
+              },
+              technician: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      return transactions;
+    } catch (error) {
+      console.error('Error fetching recent transactions:', error);
+      throw new Error('Error al obtener transacciones recientes');
     }
   }
 

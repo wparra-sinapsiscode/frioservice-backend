@@ -41,6 +41,30 @@ export class StatsController {
   }
 
   /**
+   * Obtiene transacciones recientes
+   * GET /api/stats/transactions/recent
+   */
+  static async getRecentTransactions(req: Request, res: Response): Promise<void> {
+    try {
+      const limit = parseInt(req.query['limit'] as string) || 10;
+      const transactions = await StatsService.getRecentTransactions(limit);
+
+      res.status(200).json({
+        success: true,
+        message: 'Transacciones recientes obtenidas exitosamente',
+        data: transactions
+      });
+    } catch (error: any) {
+      console.error('Error en getRecentTransactions:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor al obtener transacciones',
+        error: error.message || 'Unknown error'
+      });
+    }
+  }
+
+  /**
    * Obtiene estadísticas detalladas de servicios con filtros
    * GET /api/stats/services?startDate=&endDate=&technicianId=&clientId=
    */
