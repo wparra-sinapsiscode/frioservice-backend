@@ -122,16 +122,16 @@ export declare const EquipmentFiltersSchema: z.ZodObject<{
     status?: "ACTIVE" | "INACTIVE" | "MAINTENANCE" | "BROKEN" | undefined;
     clientId?: string | undefined;
     type?: string | undefined;
-    page?: string | undefined;
     limit?: string | undefined;
     brand?: string | undefined;
+    page?: string | undefined;
 }, {
     status?: "ACTIVE" | "INACTIVE" | "MAINTENANCE" | "BROKEN" | undefined;
     clientId?: string | undefined;
     type?: string | undefined;
-    page?: string | undefined;
     limit?: string | undefined;
     brand?: string | undefined;
+    page?: string | undefined;
 }>;
 export declare const EquipmentIdSchema: z.ZodObject<{
     id: z.ZodString;

@@ -22,6 +22,10 @@ router.get('/services', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validat
 router.get('/income', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateQuery)(IncomeStatsQuerySchema), statsController_1.StatsController.getIncomeStats);
 router.get('/technicians/rankings', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateQuery)(EmptyQuerySchema), statsController_1.StatsController.getTechnicianRankings);
 router.get('/overview', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateQuery)(EmptyQuerySchema), statsController_1.StatsController.getSystemOverview);
+router.get('/transactions/recent', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateQuery)(zod_1.z.object({ limit: zod_1.z.string().optional() }).optional()), statsController_1.StatsController.getRecentTransactions);
+router.get('/equipment/services', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateQuery)(EmptyQuerySchema), statsController_1.StatsController.getServicesByEquipment);
+router.get('/technicians/efficiency', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateQuery)(zod_1.z.object({ technicianId: zod_1.z.string().cuid().optional() }).optional()), statsController_1.StatsController.getTechnicianEfficiency);
+router.get('/clients/rankings', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateQuery)(EmptyQuerySchema), statsController_1.StatsController.getClientRankings);
 router.get('/realtime', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateQuery)(EmptyQuerySchema), statsController_1.StatsController.getRealtimeMetrics);
 exports.default = router;
 //# sourceMappingURL=statsRoutes.js.map

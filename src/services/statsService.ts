@@ -608,7 +608,7 @@ export class StatsService {
    * @param period Período de análisis ('month', 'quarter', 'year')
    * @returns Promise<IncomeStats>
    */
-  static async getIncomeStats(period: 'month' | 'quarter' | 'year' = 'month') {
+  static async getIncomeStats(period: 'day' | 'month' | 'quarter' | 'year' = 'month') {
     try {
       const now = new Date();
       let startDate: Date;
@@ -617,6 +617,11 @@ export class StatsService {
 
       // Configurar fechas según el período
       switch (period) {
+        case 'day':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          previousStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+          previousEndDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+          break;
         case 'month':
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
           previousStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -639,7 +644,9 @@ export class StatsService {
         currentIncome,
         previousIncome,
         incomeByType,
-        incomeByMonth
+        incomeByMonth,
+        incomeByDay,
+        incomeByYear
       ] = await Promise.all([
         // Ingresos del período actual
         prisma.quote.aggregate({
@@ -719,6 +726,30 @@ export class StatsService {
             }
           },
           _sum: { amount: true }
+        }),
+
+        // Ingresos diarios (últimos 7 días)
+        prisma.quote.groupBy({
+          by: ['approvedAt'],
+          where: {
+            status: 'APPROVED',
+            approvedAt: {
+              gte: new Date(new Date().setDate(new Date().getDate() - 7))
+            }
+          },
+          _sum: { amount: true }
+        }),
+
+        // Ingresos anuales (últimos 3 años)
+        prisma.quote.groupBy({
+          by: ['approvedAt'],
+          where: {
+            status: 'APPROVED',
+            approvedAt: {
+              gte: new Date(new Date().setFullYear(new Date().getFullYear() - 3))
+            }
+          },
+          _sum: { amount: true }
         })
       ]);
 
@@ -753,7 +784,9 @@ export class StatsService {
           transactions: item._count.id,
           label: this.getServiceTypeLabel(item.type)
         })),
-        incomeByMonth: this.processMonthlyIncomeData(incomeByMonth)
+        incomeByMonth: this.processMonthlyIncomeData(incomeByMonth),
+        incomeByDay: this.processDailyIncomeData(incomeByDay),
+        incomeByYear: this.processYearlyIncomeData(incomeByYear)
       };
 
     } catch (error) {
@@ -858,6 +891,54 @@ export class StatsService {
   }
 
   /**
+   * Procesa datos de ingresos diarios
+   */
+  private static processDailyIncomeData(data: any[]) {
+    const dailyMap = new Map();
+    
+    data.forEach(item => {
+      const date = new Date(item.approvedAt);
+      const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      
+      if (dailyMap.has(dayKey)) {
+        dailyMap.set(dayKey, dailyMap.get(dayKey) + Number(item._sum.amount || 0));
+      } else {
+        dailyMap.set(dayKey, Number(item._sum.amount || 0));
+      }
+    });
+
+    return Array.from(dailyMap.entries()).map(([day, income]) => ({
+      day,
+      income,
+      label: this.getDayLabel(day)
+    }));
+  }
+
+  /**
+   * Procesa datos de ingresos anuales
+   */
+  private static processYearlyIncomeData(data: any[]) {
+    const yearlyMap = new Map();
+    
+    data.forEach(item => {
+      const date = new Date(item.approvedAt);
+      const yearKey = date.getFullYear().toString();
+      
+      if (yearlyMap.has(yearKey)) {
+        yearlyMap.set(yearKey, yearlyMap.get(yearKey) + Number(item._sum.amount || 0));
+      } else {
+        yearlyMap.set(yearKey, Number(item._sum.amount || 0));
+      }
+    });
+
+    return Array.from(yearlyMap.entries()).map(([year, income]) => ({
+      year,
+      income,
+      label: year
+    }));
+  }
+
+  /**
    * Obtiene etiquetas legibles para tipos de servicio
    */
   private static getServiceTypeLabel(type: string): string {
@@ -921,11 +1002,46 @@ export class StatsService {
   }
 
   /**
+   * Convierte clave de día a etiqueta legible
+   */
+  private static getDayLabel(dayKey: string): string {
+    if (!dayKey || dayKey.split('-').length !== 3) {
+      console.log('⚠️ getDayLabel: dayKey inválido:', dayKey);
+      return 'Día desconocido';
+    }
+    
+    const [year, month, day] = dayKey.split('-');
+    const dayNumber = parseInt(day, 10);
+    const monthNumber = parseInt(month, 10);
+    const yearNumber = parseInt(year, 10);
+    
+    if (isNaN(dayNumber) || isNaN(monthNumber) || isNaN(yearNumber)) {
+      console.log('⚠️ getDayLabel: Error parseando fecha:', { year, month, day, dayKey });
+      return 'Fecha inválida';
+    }
+    
+    const monthNames = [
+      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+    ];
+    
+    const monthIndex = monthNumber - 1;
+    if (monthIndex < 0 || monthIndex >= 12) {
+      console.log('⚠️ getDayLabel: Índice de mes inválido:', monthIndex);
+      return 'Mes inválido';
+    }
+    
+    return `${dayNumber} ${monthNames[monthIndex]}`;
+  }
+
+  /**
    * Obtiene número de días en el período especificado
    */
-  private static getDaysInPeriod(period: 'month' | 'quarter' | 'year'): number {
+  private static getDaysInPeriod(period: 'day' | 'month' | 'quarter' | 'year'): number {
     const now = new Date();
     switch (period) {
+      case 'day':
+        return 1;
       case 'month':
         return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
       case 'quarter':

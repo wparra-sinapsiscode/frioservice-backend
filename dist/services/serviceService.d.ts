@@ -500,11 +500,6 @@ export declare class ServiceService {
         images?: string[];
     }): Promise<{
         client: {
-            user: {
-                username: string;
-                email: string;
-            };
-        } & {
             userId: string;
             email: string | null;
             id: string;
@@ -529,12 +524,7 @@ export declare class ServiceService {
             isVip: boolean;
             discount: number | null;
         };
-        technician: ({
-            user: {
-                username: string;
-                email: string;
-            };
-        } & {
+        technician: {
             userId: string;
             id: string;
             createdAt: Date;
@@ -549,7 +539,15 @@ export declare class ServiceService {
             averageTime: string | null;
             firstName: string | null;
             lastName: string | null;
-        }) | null;
+        } | null;
+        transactions: {
+            id: string;
+            createdAt: Date;
+            description: string | null;
+            type: import(".prisma/client").$Enums.TransactionType;
+            serviceId: string;
+            amount: number;
+        }[];
     } & {
         id: string;
         createdAt: Date;

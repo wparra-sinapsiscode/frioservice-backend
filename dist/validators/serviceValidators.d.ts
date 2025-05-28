@@ -205,8 +205,8 @@ export declare const ServiceFiltersSchema: z.ZodObject<{
     page: z.ZodDefault<z.ZodEffects<z.ZodEffects<z.ZodString, number, string>, number, string>>;
     limit: z.ZodDefault<z.ZodEffects<z.ZodEffects<z.ZodString, number, string>, number, string>>;
 }, "strip", z.ZodTypeAny, {
-    page: number;
     limit: number;
+    page: number;
     status?: "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ON_HOLD" | undefined;
     clientId?: string | undefined;
     technicianId?: string | undefined;
@@ -220,10 +220,10 @@ export declare const ServiceFiltersSchema: z.ZodObject<{
     technicianId?: string | undefined;
     type?: "MAINTENANCE" | "REPAIR" | "INSTALLATION" | "INSPECTION" | "EMERGENCY" | "CLEANING" | "CONSULTATION" | undefined;
     priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT" | undefined;
+    limit?: string | undefined;
     startDate?: string | undefined;
     endDate?: string | undefined;
     page?: string | undefined;
-    limit?: string | undefined;
 }>;
 export declare const ServiceIdSchema: z.ZodObject<{
     id: z.ZodString;

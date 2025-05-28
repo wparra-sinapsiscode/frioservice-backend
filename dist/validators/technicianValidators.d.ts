@@ -119,8 +119,8 @@ export declare const TechnicianFiltersSchema: z.ZodObject<{
     page: z.ZodDefault<z.ZodEffects<z.ZodEffects<z.ZodString, number, string>, number, string>>;
     limit: z.ZodDefault<z.ZodEffects<z.ZodEffects<z.ZodString, number, string>, number, string>>;
 }, "strip", z.ZodTypeAny, {
-    page: number;
     limit: number;
+    page: number;
     search?: string | undefined;
     specialty?: string | undefined;
     experienceYears?: number | undefined;
@@ -130,21 +130,21 @@ export declare const TechnicianFiltersSchema: z.ZodObject<{
     specialty?: string | undefined;
     experienceYears?: string | undefined;
     isAvailable?: string | undefined;
-    page?: string | undefined;
     limit?: string | undefined;
+    page?: string | undefined;
 }>;
 export declare const TechnicianSearchSchema: z.ZodObject<{
     q: z.ZodString;
     page: z.ZodDefault<z.ZodEffects<z.ZodEffects<z.ZodString, number, string>, number, string>>;
     limit: z.ZodDefault<z.ZodEffects<z.ZodEffects<z.ZodString, number, string>, number, string>>;
 }, "strip", z.ZodTypeAny, {
-    page: number;
     limit: number;
+    page: number;
     q: string;
 }, {
     q: string;
-    page?: string | undefined;
     limit?: string | undefined;
+    page?: string | undefined;
 }>;
 export declare const TechnicianIdSchema: z.ZodObject<{
     id: z.ZodString;

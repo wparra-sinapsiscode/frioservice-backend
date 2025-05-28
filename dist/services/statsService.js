@@ -10,7 +10,7 @@ class StatsService {
             const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const firstDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
             const lastDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-            const [servicesByStatus, clientsCount, techniciansAvailable, servicesThisMonth, servicesPrevMonth, quotesCount, monthlyIncome, prevMonthIncome] = await Promise.all([
+            const [servicesByStatus, clientsCount, techniciansAvailable, servicesThisMonth, servicesPrevMonth, quotesCount, monthlyIncome, prevMonthIncome, monthlyTransactions, prevMonthTransactions] = await Promise.all([
                 prisma.service.groupBy({
                     by: ['status'],
                     _count: { status: true }
@@ -61,6 +61,24 @@ class StatsService {
                         }
                     },
                     _sum: { amount: true }
+                }),
+                prisma.transaction.aggregate({
+                    where: {
+                        createdAt: {
+                            gte: firstDayOfMonth,
+                            lte: now
+                        }
+                    },
+                    _sum: { amount: true }
+                }),
+                prisma.transaction.aggregate({
+                    where: {
+                        createdAt: {
+                            gte: firstDayOfPrevMonth,
+                            lte: lastDayOfPrevMonth
+                        }
+                    },
+                    _sum: { amount: true }
                 })
             ]);
             const servicesStats = servicesByStatus.reduce((acc, item) => {
@@ -70,8 +88,10 @@ class StatsService {
             const servicesGrowth = servicesPrevMonth > 0
                 ? ((servicesThisMonth - servicesPrevMonth) / servicesPrevMonth) * 100
                 : 0;
-            const incomeGrowth = prevMonthIncome._sum.amount
-                ? ((Number(monthlyIncome._sum.amount || 0) - Number(prevMonthIncome._sum.amount)) / Number(prevMonthIncome._sum.amount)) * 100
+            const totalMonthlyIncome = Number(monthlyIncome._sum.amount || 0) + Number(monthlyTransactions._sum.amount || 0);
+            const totalPrevMonthIncome = Number(prevMonthIncome._sum.amount || 0) + Number(prevMonthTransactions._sum.amount || 0);
+            const incomeGrowth = totalPrevMonthIncome > 0
+                ? ((totalMonthlyIncome - totalPrevMonthIncome) / totalPrevMonthIncome) * 100
                 : 0;
             return {
                 totalServices: {
@@ -88,9 +108,13 @@ class StatsService {
                 totalClients: clientsCount,
                 totalTechnicians: techniciansAvailable,
                 monthlyIncome: {
-                    current: Number(monthlyIncome._sum.amount || 0),
-                    previous: Number(prevMonthIncome._sum.amount || 0),
-                    growth: Number(incomeGrowth.toFixed(2))
+                    current: totalMonthlyIncome,
+                    previous: totalPrevMonthIncome,
+                    growth: Number(incomeGrowth.toFixed(2)),
+                    breakdown: {
+                        quotes: Number(monthlyIncome._sum.amount || 0),
+                        materials: Number(monthlyTransactions._sum.amount || 0)
+                    }
                 },
                 completedServicesThisMonth: {
                     current: servicesThisMonth,
@@ -104,6 +128,270 @@ class StatsService {
         catch (error) {
             console.error('Error fetching dashboard stats:', error);
             throw new Error('Error al obtener estadísticas del dashboard');
+        }
+    }
+    static async getRecentTransactions(limit = 10) {
+        try {
+            const transactions = await prisma.transaction.findMany({
+                take: limit,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    service: {
+                        include: {
+                            client: {
+                                select: {
+                                    companyName: true,
+                                    contactPerson: true
+                                }
+                            },
+                            technician: {
+                                select: {
+                                    firstName: true,
+                                    lastName: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            return transactions;
+        }
+        catch (error) {
+            console.error('Error fetching recent transactions:', error);
+            throw new Error('Error al obtener transacciones recientes');
+        }
+    }
+    static async getServicesByEquipment() {
+        try {
+            console.log('🔍 getServicesByEquipment: Iniciando consulta...');
+            const servicesWithEquipment = await prisma.service.findMany({
+                where: {
+                    equipmentIds: {
+                        isEmpty: false
+                    }
+                },
+                select: {
+                    equipmentIds: true,
+                    status: true,
+                    type: true,
+                    completedAt: true
+                }
+            });
+            console.log(`🔍 getServicesByEquipment: Encontrados ${servicesWithEquipment.length} servicios con equipos`);
+            if (servicesWithEquipment.length === 0) {
+                console.log('⚠️ getServicesByEquipment: No hay servicios con equipmentIds');
+                return {
+                    equipmentStats: [],
+                    servicesByEquipmentType: [],
+                    totalEquipmentsWithServices: 0,
+                    totalServices: 0
+                };
+            }
+            const allEquipmentIds = [...new Set(servicesWithEquipment.flatMap(s => s.equipmentIds))];
+            console.log(`🔍 getServicesByEquipment: Equipment IDs únicos: ${allEquipmentIds.length}`);
+            const equipments = await prisma.equipment.findMany({
+                where: { id: { in: allEquipmentIds } },
+                select: {
+                    id: true,
+                    name: true,
+                    type: true,
+                    brand: true,
+                    status: true,
+                    client: {
+                        select: {
+                            companyName: true,
+                            contactPerson: true
+                        }
+                    }
+                }
+            });
+            const equipmentStats = allEquipmentIds.map(equipmentId => {
+                const equipment = equipments.find(e => e.id === equipmentId);
+                const servicesForEquipment = servicesWithEquipment.filter(s => s.equipmentIds.includes(equipmentId));
+                const completedServices = servicesForEquipment.filter(s => s.status === 'COMPLETED');
+                const pendingServices = servicesForEquipment.filter(s => ['PENDING', 'IN_PROGRESS'].includes(s.status));
+                return {
+                    equipmentId,
+                    equipment: equipment ? {
+                        name: equipment.name,
+                        type: equipment.type,
+                        brand: equipment.brand,
+                        status: equipment.status,
+                        client: equipment.client?.companyName || equipment.client?.contactPerson || 'N/A'
+                    } : null,
+                    totalServices: servicesForEquipment.length,
+                    completedServices: completedServices.length,
+                    pendingServices: pendingServices.length,
+                    lastServiceDate: completedServices.length > 0
+                        ? Math.max(...completedServices.map(s => s.completedAt ? new Date(s.completedAt).getTime() : 0))
+                        : null
+                };
+            }).filter(stat => stat.equipment !== null)
+                .sort((a, b) => b.totalServices - a.totalServices);
+            const servicesByEquipmentType = equipments.reduce((acc, equipment) => {
+                const servicesForEquipment = servicesWithEquipment.filter(s => s.equipmentIds.includes(equipment.id));
+                if (!acc[equipment.type]) {
+                    acc[equipment.type] = {
+                        type: equipment.type,
+                        equipmentCount: 0,
+                        totalServices: 0,
+                        completedServices: 0,
+                        pendingServices: 0
+                    };
+                }
+                acc[equipment.type].equipmentCount++;
+                acc[equipment.type].totalServices += servicesForEquipment.length;
+                acc[equipment.type].completedServices += servicesForEquipment.filter(s => s.status === 'COMPLETED').length;
+                acc[equipment.type].pendingServices += servicesForEquipment.filter(s => ['PENDING', 'IN_PROGRESS'].includes(s.status)).length;
+                return acc;
+            }, {});
+            return {
+                equipmentStats: equipmentStats.slice(0, 10),
+                servicesByEquipmentType: Object.values(servicesByEquipmentType),
+                totalEquipmentsWithServices: equipmentStats.length,
+                totalServices: servicesWithEquipment.length
+            };
+        }
+        catch (error) {
+            console.error('Error fetching services by equipment:', error);
+            throw new Error('Error al obtener estadísticas de servicios por equipo');
+        }
+    }
+    static async getTechnicianEfficiency(technicianId) {
+        try {
+            console.log(`🔍 getTechnicianEfficiency: Obteniendo datos simples${technicianId ? ` para técnico ${technicianId}` : ' para todos los técnicos'}...`);
+            const whereClause = technicianId ? { id: technicianId } : {};
+            const technicians = await prisma.technician.findMany({
+                where: whereClause,
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    servicesCompleted: true,
+                    averageTime: true,
+                    rating: true,
+                    specialty: true
+                }
+            });
+            console.log(`🔍 getTechnicianEfficiency: Encontrados ${technicians.length} técnicos`);
+            const efficiencyData = technicians.map(tech => ({
+                name: `${tech.firstName} ${tech.lastName}`,
+                specialty: tech.specialty,
+                servicesCompleted: tech.servicesCompleted,
+                averageTime: tech.averageTime || 'N/A',
+                rating: Number((tech.rating || 0).toFixed(1))
+            }));
+            return {
+                technicians: efficiencyData,
+                total: technicians.length
+            };
+        }
+        catch (error) {
+            console.error('Error fetching technician efficiency:', error);
+            throw new Error('Error al obtener estadísticas de eficiencia de técnicos');
+        }
+    }
+    static async getClientRankings() {
+        try {
+            const [topByServices, topByIncome, mostActiveClients] = await Promise.all([
+                prisma.service.groupBy({
+                    by: ['clientId'],
+                    _count: { id: true },
+                    orderBy: { _count: { id: 'desc' } },
+                    take: 10
+                }),
+                prisma.quote.groupBy({
+                    by: ['clientId'],
+                    where: { status: 'APPROVED' },
+                    _sum: { amount: true },
+                    _count: { id: true },
+                    orderBy: { _sum: { amount: 'desc' } },
+                    take: 10
+                }),
+                prisma.service.groupBy({
+                    by: ['clientId'],
+                    where: {
+                        createdAt: {
+                            gte: new Date(new Date().setMonth(new Date().getMonth() - 3))
+                        }
+                    },
+                    _count: { id: true },
+                    orderBy: { _count: { id: 'desc' } },
+                    take: 10
+                })
+            ]);
+            const allClientIds = [...new Set([
+                    ...topByServices.map(item => item.clientId),
+                    ...topByIncome.map(item => item.clientId),
+                    ...mostActiveClients.map(item => item.clientId)
+                ])];
+            const clients = await prisma.client.findMany({
+                where: { id: { in: allClientIds } },
+                select: {
+                    id: true,
+                    companyName: true,
+                    contactPerson: true,
+                    clientType: true,
+                    sector: true,
+                    isVip: true,
+                    createdAt: true
+                }
+            });
+            const processRanking = (data, clients, type) => {
+                return data.map((item, index) => {
+                    const client = clients.find(c => c.id === item.clientId);
+                    const baseData = {
+                        rank: index + 1,
+                        clientId: item.clientId,
+                        clientName: client?.companyName || client?.contactPerson || 'Cliente desconocido',
+                        clientType: client?.clientType || 'N/A',
+                        sector: client?.sector || 'N/A',
+                        isVip: client?.isVip || false
+                    };
+                    switch (type) {
+                        case 'services':
+                            return {
+                                ...baseData,
+                                totalServices: item._count.id,
+                                metric: item._count.id
+                            };
+                        case 'income':
+                            return {
+                                ...baseData,
+                                totalIncome: Number(item._sum.amount || 0),
+                                totalQuotes: item._count.id,
+                                metric: Number(item._sum.amount || 0)
+                            };
+                        case 'activity':
+                            return {
+                                ...baseData,
+                                recentServices: item._count.id,
+                                metric: item._count.id
+                            };
+                        default:
+                            return baseData;
+                    }
+                });
+            };
+            const totalClients = await prisma.client.count({ where: { status: 'ACTIVE' } });
+            const vipClients = clients.filter(c => c.isVip).length;
+            const averageServicesPerClient = topByServices.length > 0
+                ? topByServices.reduce((sum, item) => sum + item._count.id, 0) / topByServices.length
+                : 0;
+            return {
+                topByServices: processRanking(topByServices, clients, 'services'),
+                topByIncome: processRanking(topByIncome, clients, 'income'),
+                mostActiveClients: processRanking(mostActiveClients, clients, 'activity'),
+                summary: {
+                    totalActiveClients: totalClients,
+                    vipClients,
+                    averageServicesPerClient: Number(averageServicesPerClient.toFixed(2))
+                }
+            };
+        }
+        catch (error) {
+            console.error('Error fetching client rankings:', error);
+            throw new Error('Error al obtener rankings de clientes');
         }
     }
     static async getServiceStats(filters = {}) {
@@ -177,6 +465,11 @@ class StatsService {
             let previousStartDate;
             let previousEndDate;
             switch (period) {
+                case 'day':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    previousStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+                    previousEndDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+                    break;
                 case 'month':
                     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
                     previousStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -194,11 +487,11 @@ class StatsService {
                     previousEndDate = new Date(now.getFullYear() - 1, 11, 31);
                     break;
             }
-            const [currentIncome, previousIncome, incomeByType, incomeByMonth] = await Promise.all([
+            const [currentIncome, previousIncome, incomeByType, incomeByMonth, incomeByDay, incomeByYear] = await Promise.all([
                 prisma.quote.aggregate({
                     where: {
                         status: 'APPROVED',
-                        createdAt: {
+                        approvedAt: {
                             gte: startDate,
                             lte: now
                         }
@@ -209,7 +502,7 @@ class StatsService {
                 prisma.quote.aggregate({
                     where: {
                         status: 'APPROVED',
-                        createdAt: {
+                        approvedAt: {
                             gte: previousStartDate,
                             lte: previousEndDate
                         }
@@ -253,11 +546,31 @@ class StatsService {
                     }));
                 }),
                 prisma.quote.groupBy({
-                    by: ['createdAt'],
+                    by: ['approvedAt'],
                     where: {
                         status: 'APPROVED',
-                        createdAt: {
+                        approvedAt: {
                             gte: new Date(new Date().setMonth(new Date().getMonth() - 12))
+                        }
+                    },
+                    _sum: { amount: true }
+                }),
+                prisma.quote.groupBy({
+                    by: ['approvedAt'],
+                    where: {
+                        status: 'APPROVED',
+                        approvedAt: {
+                            gte: new Date(new Date().setDate(new Date().getDate() - 7))
+                        }
+                    },
+                    _sum: { amount: true }
+                }),
+                prisma.quote.groupBy({
+                    by: ['approvedAt'],
+                    where: {
+                        status: 'APPROVED',
+                        approvedAt: {
+                            gte: new Date(new Date().setFullYear(new Date().getFullYear() - 3))
                         }
                     },
                     _sum: { amount: true }
@@ -289,7 +602,9 @@ class StatsService {
                     transactions: item._count.id,
                     label: this.getServiceTypeLabel(item.type)
                 })),
-                incomeByMonth: this.processMonthlyIncomeData(incomeByMonth)
+                incomeByMonth: this.processMonthlyIncomeData(incomeByMonth),
+                incomeByDay: this.processDailyIncomeData(incomeByDay),
+                incomeByYear: this.processYearlyIncomeData(incomeByYear)
             };
         }
         catch (error) {
@@ -299,95 +614,32 @@ class StatsService {
     }
     static async getTechnicianRankings() {
         try {
-            const [topByServices, topByRating, efficiencyData] = await Promise.all([
-                prisma.technician.findMany({
-                    select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                        servicesCompleted: true,
-                        specialty: true
-                    },
-                    orderBy: { servicesCompleted: 'desc' },
-                    take: 5
-                }),
-                prisma.technician.findMany({
-                    select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                        rating: true,
-                        servicesCompleted: true,
-                        specialty: true
-                    },
-                    where: {
-                        rating: { gt: 0 }
-                    },
-                    orderBy: { rating: 'desc' },
-                    take: 5
-                }),
-                prisma.technician.findMany({
-                    select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                        servicesCompleted: true,
-                        averageTime: true,
-                        rating: true,
-                        specialty: true
-                    },
-                    where: {
-                        averageTime: { not: null },
-                        servicesCompleted: { gt: 0 }
-                    }
-                })
-            ]);
-            const efficiency = efficiencyData
-                .map(tech => {
-                let avgTimeInMinutes = 0;
-                if (tech.averageTime) {
-                    if (typeof tech.averageTime === 'number') {
-                        avgTimeInMinutes = tech.averageTime;
-                    }
-                    else {
-                        avgTimeInMinutes = parseFloat(tech.averageTime.toString()) || 0;
-                    }
-                }
-                return {
-                    id: tech.id,
-                    firstName: tech.firstName,
-                    lastName: tech.lastName,
-                    servicesCompleted: tech.servicesCompleted,
-                    averageTime: avgTimeInMinutes,
-                    efficiency: avgTimeInMinutes > 0 ? tech.servicesCompleted / (avgTimeInMinutes / 60) : 0,
-                    rating: tech.rating || 0,
-                    specialty: tech.specialty
-                };
-            })
-                .sort((a, b) => b.efficiency - a.efficiency)
-                .slice(0, 5);
+            console.log('🔍 getTechnicianRankings: Obteniendo datos directos de la tabla técnicos...');
+            const topTechnicians = await prisma.technician.findMany({
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    servicesCompleted: true,
+                    averageTime: true,
+                    rating: true,
+                    specialty: true
+                },
+                orderBy: { servicesCompleted: 'desc' },
+                take: 10
+            });
+            console.log(`🔍 getTechnicianRankings: Encontrados ${topTechnicians.length} técnicos`);
+            const formattedTechnicians = topTechnicians.map((tech, index) => ({
+                rank: index + 1,
+                name: `${tech.firstName} ${tech.lastName}`,
+                servicesCompleted: tech.servicesCompleted,
+                averageTime: tech.averageTime || 'N/A',
+                rating: Number((tech.rating || 0).toFixed(1)),
+                specialty: tech.specialty
+            }));
             return {
-                topByServices: topByServices.map(tech => ({
-                    id: tech.id,
-                    name: `${tech.firstName} ${tech.lastName}`,
-                    servicesCompleted: tech.servicesCompleted,
-                    specialty: tech.specialty
-                })),
-                topByRating: topByRating.map(tech => ({
-                    id: tech.id,
-                    name: `${tech.firstName} ${tech.lastName}`,
-                    rating: Number((tech.rating || 0).toFixed(2)),
-                    servicesCompleted: tech.servicesCompleted,
-                    specialty: tech.specialty
-                })),
-                topByEfficiency: efficiency.map(tech => ({
-                    id: tech.id,
-                    name: `${tech.firstName} ${tech.lastName}`,
-                    efficiency: Number(tech.efficiency.toFixed(2)),
-                    servicesPerHour: Number((tech.efficiency).toFixed(1)),
-                    averageTime: tech.averageTime,
-                    specialty: tech.specialty
-                }))
+                topTechnicians: formattedTechnicians,
+                total: topTechnicians.length
             };
         }
         catch (error) {
@@ -416,7 +668,7 @@ class StatsService {
     static processMonthlyIncomeData(data) {
         const monthlyMap = new Map();
         data.forEach(item => {
-            const date = new Date(item.createdAt);
+            const date = new Date(item.approvedAt);
             const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
             if (monthlyMap.has(monthKey)) {
                 monthlyMap.set(monthKey, monthlyMap.get(monthKey) + Number(item._sum.amount || 0));
@@ -429,6 +681,42 @@ class StatsService {
             month,
             income,
             label: this.getMonthLabel(month)
+        }));
+    }
+    static processDailyIncomeData(data) {
+        const dailyMap = new Map();
+        data.forEach(item => {
+            const date = new Date(item.approvedAt);
+            const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            if (dailyMap.has(dayKey)) {
+                dailyMap.set(dayKey, dailyMap.get(dayKey) + Number(item._sum.amount || 0));
+            }
+            else {
+                dailyMap.set(dayKey, Number(item._sum.amount || 0));
+            }
+        });
+        return Array.from(dailyMap.entries()).map(([day, income]) => ({
+            day,
+            income,
+            label: this.getDayLabel(day)
+        }));
+    }
+    static processYearlyIncomeData(data) {
+        const yearlyMap = new Map();
+        data.forEach(item => {
+            const date = new Date(item.approvedAt);
+            const yearKey = date.getFullYear().toString();
+            if (yearlyMap.has(yearKey)) {
+                yearlyMap.set(yearKey, yearlyMap.get(yearKey) + Number(item._sum.amount || 0));
+            }
+            else {
+                yearlyMap.set(yearKey, Number(item._sum.amount || 0));
+            }
+        });
+        return Array.from(yearlyMap.entries()).map(([year, income]) => ({
+            year,
+            income,
+            label: year
         }));
     }
     static getServiceTypeLabel(type) {
@@ -455,16 +743,57 @@ class StatsService {
         return labels[status] || status;
     }
     static getMonthLabel(monthKey) {
+        if (!monthKey || !monthKey.includes('-')) {
+            console.log('⚠️ getMonthLabel: monthKey inválido:', monthKey);
+            return 'Mes desconocido';
+        }
         const [year, month] = monthKey.split('-');
+        const monthNumber = parseInt(month, 10);
+        const yearNumber = parseInt(year, 10);
+        if (isNaN(monthNumber) || isNaN(yearNumber)) {
+            console.log('⚠️ getMonthLabel: Error parseando fecha:', { year, month, monthKey });
+            return 'Fecha inválida';
+        }
         const monthNames = [
             'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
             'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
         ];
-        return `${monthNames[parseInt(month) - 1]} ${year}`;
+        const monthIndex = monthNumber - 1;
+        if (monthIndex < 0 || monthIndex >= 12) {
+            console.log('⚠️ getMonthLabel: Índice de mes inválido:', monthIndex);
+            return 'Mes inválido';
+        }
+        return `${monthNames[monthIndex]} ${yearNumber}`;
+    }
+    static getDayLabel(dayKey) {
+        if (!dayKey || dayKey.split('-').length !== 3) {
+            console.log('⚠️ getDayLabel: dayKey inválido:', dayKey);
+            return 'Día desconocido';
+        }
+        const [year, month, day] = dayKey.split('-');
+        const dayNumber = parseInt(day, 10);
+        const monthNumber = parseInt(month, 10);
+        const yearNumber = parseInt(year, 10);
+        if (isNaN(dayNumber) || isNaN(monthNumber) || isNaN(yearNumber)) {
+            console.log('⚠️ getDayLabel: Error parseando fecha:', { year, month, day, dayKey });
+            return 'Fecha inválida';
+        }
+        const monthNames = [
+            'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+            'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+        ];
+        const monthIndex = monthNumber - 1;
+        if (monthIndex < 0 || monthIndex >= 12) {
+            console.log('⚠️ getDayLabel: Índice de mes inválido:', monthIndex);
+            return 'Mes inválido';
+        }
+        return `${dayNumber} ${monthNames[monthIndex]}`;
     }
     static getDaysInPeriod(period) {
         const now = new Date();
         switch (period) {
+            case 'day':
+                return 1;
             case 'month':
                 return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             case 'quarter':

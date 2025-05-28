@@ -31,6 +31,80 @@ class StatsController {
             });
         }
     }
+    static async getRecentTransactions(req, res) {
+        try {
+            const limit = parseInt(req.query['limit']) || 10;
+            const transactions = await statsService_1.StatsService.getRecentTransactions(limit);
+            res.status(200).json({
+                success: true,
+                message: 'Transacciones recientes obtenidas exitosamente',
+                data: transactions
+            });
+        }
+        catch (error) {
+            console.error('Error en getRecentTransactions:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error interno del servidor al obtener transacciones',
+                error: error.message || 'Unknown error'
+            });
+        }
+    }
+    static async getServicesByEquipment(_req, res) {
+        try {
+            const stats = await statsService_1.StatsService.getServicesByEquipment();
+            res.status(200).json({
+                success: true,
+                message: 'Estadísticas de servicios por equipo obtenidas exitosamente',
+                data: stats
+            });
+        }
+        catch (error) {
+            console.error('Error en getServicesByEquipment:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error interno del servidor al obtener estadísticas de equipos',
+                error: error.message || 'Unknown error'
+            });
+        }
+    }
+    static async getTechnicianEfficiency(req, res) {
+        try {
+            const technicianId = req.query['technicianId'];
+            const stats = await statsService_1.StatsService.getTechnicianEfficiency(technicianId);
+            res.status(200).json({
+                success: true,
+                message: 'Estadísticas de eficiencia de técnicos obtenidas exitosamente',
+                data: stats
+            });
+        }
+        catch (error) {
+            console.error('Error en getTechnicianEfficiency:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error interno del servidor al obtener estadísticas de eficiencia',
+                error: error.message || 'Unknown error'
+            });
+        }
+    }
+    static async getClientRankings(_req, res) {
+        try {
+            const rankings = await statsService_1.StatsService.getClientRankings();
+            res.status(200).json({
+                success: true,
+                message: 'Rankings de clientes obtenidos exitosamente',
+                data: rankings
+            });
+        }
+        catch (error) {
+            console.error('Error en getClientRankings:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error interno del servidor al obtener rankings de clientes',
+                error: error.message || 'Unknown error'
+            });
+        }
+    }
     static async getServiceStats(req, res) {
         try {
             const { startDate, endDate, technicianId, clientId } = req.query;
@@ -149,12 +223,9 @@ class StatsController {
             const rankings = await statsService_1.StatsService.getTechnicianRankings();
             console.log('🔥🔥🔥 2. STATS CONTROLLER: Rankings de técnicos obtenidos exitosamente');
             console.log('🔥🔥🔥 Technician rankings preview:', {
-                topByServicesCount: rankings.topByServices.length,
-                topByRatingCount: rankings.topByRating.length,
-                topByEfficiencyCount: rankings.topByEfficiency.length,
-                topPerformer: rankings.topByServices[0]?.name || 'N/A',
-                topRated: rankings.topByRating[0]?.name || 'N/A',
-                mostEfficient: rankings.topByEfficiency[0]?.name || 'N/A'
+                totalTechnicians: rankings.total,
+                topPerformer: rankings.topTechnicians[0]?.name || 'N/A',
+                topServices: rankings.topTechnicians[0]?.servicesCompleted || 0
             });
             res.status(200).json({
                 success: true,
@@ -181,7 +252,7 @@ class StatsController {
             ]);
             const overview = {
                 dashboard: dashboardStats,
-                topTechnicians: technicianRankings.topByServices.slice(0, 3),
+                topTechnicians: technicianRankings.topTechnicians.slice(0, 3),
                 quickStats: {
                     totalServices: dashboardStats.totalServices.total,
                     activeClients: dashboardStats.totalClients,

@@ -205,8 +205,8 @@ export declare const ClientFiltersSchema: z.ZodObject<{
     page: z.ZodDefault<z.ZodEffects<z.ZodEffects<z.ZodString, number, string>, number, string>>;
     limit: z.ZodDefault<z.ZodEffects<z.ZodEffects<z.ZodString, number, string>, number, string>>;
 }, "strip", z.ZodTypeAny, {
-    page: number;
     limit: number;
+    page: number;
     search?: string | undefined;
     city?: string | undefined;
     clientType?: "PERSONAL" | "COMPANY" | undefined;
@@ -218,21 +218,21 @@ export declare const ClientFiltersSchema: z.ZodObject<{
     clientType?: "PERSONAL" | "COMPANY" | undefined;
     status?: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "BLOCKED" | undefined;
     isVip?: string | undefined;
-    page?: string | undefined;
     limit?: string | undefined;
+    page?: string | undefined;
 }>;
 export declare const ClientSearchSchema: z.ZodObject<{
     q: z.ZodString;
     page: z.ZodDefault<z.ZodEffects<z.ZodEffects<z.ZodString, number, string>, number, string>>;
     limit: z.ZodDefault<z.ZodEffects<z.ZodEffects<z.ZodString, number, string>, number, string>>;
 }, "strip", z.ZodTypeAny, {
-    page: number;
     limit: number;
+    page: number;
     q: string;
 }, {
     q: string;
-    page?: string | undefined;
     limit?: string | undefined;
+    page?: string | undefined;
 }>;
 export declare const ClientIdSchema: z.ZodObject<{
     id: z.ZodString;

@@ -65,15 +65,15 @@ export declare const QuoteFiltersSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     status?: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | undefined;
     clientId?: string | undefined;
-    page?: string | undefined;
-    limit?: string | undefined;
     serviceId?: string | undefined;
+    limit?: string | undefined;
+    page?: string | undefined;
 }, {
     status?: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | undefined;
     clientId?: string | undefined;
-    page?: string | undefined;
-    limit?: string | undefined;
     serviceId?: string | undefined;
+    limit?: string | undefined;
+    page?: string | undefined;
 }>;
 export declare const QuoteIdSchema: z.ZodObject<{
     id: z.ZodString;
@@ -93,11 +93,11 @@ export declare const PaginationSchema: z.ZodObject<{
     page: z.ZodOptional<z.ZodString>;
     limit: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    page?: string | undefined;
     limit?: string | undefined;
+    page?: string | undefined;
 }, {
-    page?: string | undefined;
     limit?: string | undefined;
+    page?: string | undefined;
 }>;
 export declare const QuoteActionSchema: z.ZodObject<{
     notes: z.ZodOptional<z.ZodString>;
