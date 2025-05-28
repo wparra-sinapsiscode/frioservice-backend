@@ -212,6 +212,302 @@ export class StatsService {
   }
 
   /**
+   * Obtiene estadísticas de servicios por equipo
+   */
+  static async getServicesByEquipment() {
+    try {
+      console.log('🔍 getServicesByEquipment: Iniciando consulta...');
+      
+      // Obtener todos los servicios con equipos
+      const servicesWithEquipment = await prisma.service.findMany({
+        where: {
+          equipmentIds: {
+            isEmpty: false
+          }
+        },
+        select: {
+          equipmentIds: true,
+          status: true,
+          type: true,
+          completedAt: true
+        }
+      });
+
+      console.log(`🔍 getServicesByEquipment: Encontrados ${servicesWithEquipment.length} servicios con equipos`);
+
+      // Si no hay servicios con equipos, devolver estructura vacía pero válida
+      if (servicesWithEquipment.length === 0) {
+        console.log('⚠️ getServicesByEquipment: No hay servicios con equipmentIds');
+        return {
+          equipmentStats: [],
+          servicesByEquipmentType: [],
+          totalEquipmentsWithServices: 0,
+          totalServices: 0
+        };
+      }
+
+      // Obtener información de equipos
+      const allEquipmentIds = [...new Set(servicesWithEquipment.flatMap(s => s.equipmentIds))];
+      console.log(`🔍 getServicesByEquipment: Equipment IDs únicos: ${allEquipmentIds.length}`);
+      
+      const equipments = await prisma.equipment.findMany({
+        where: { id: { in: allEquipmentIds } },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          brand: true,
+          status: true,
+          client: {
+            select: {
+              companyName: true,
+              contactPerson: true
+            }
+          }
+        }
+      });
+
+      // Analizar servicios por equipo
+      const equipmentStats = allEquipmentIds.map(equipmentId => {
+        const equipment = equipments.find(e => e.id === equipmentId);
+        const servicesForEquipment = servicesWithEquipment.filter(s => 
+          s.equipmentIds.includes(equipmentId)
+        );
+
+        const completedServices = servicesForEquipment.filter(s => s.status === 'COMPLETED');
+        const pendingServices = servicesForEquipment.filter(s => 
+          ['PENDING', 'IN_PROGRESS'].includes(s.status)
+        );
+
+        return {
+          equipmentId,
+          equipment: equipment ? {
+            name: equipment.name,
+            type: equipment.type,
+            brand: equipment.brand,
+            status: equipment.status,
+            client: equipment.client?.companyName || equipment.client?.contactPerson || 'N/A'
+          } : null,
+          totalServices: servicesForEquipment.length,
+          completedServices: completedServices.length,
+          pendingServices: pendingServices.length,
+          lastServiceDate: completedServices.length > 0 
+            ? Math.max(...completedServices.map(s => s.completedAt ? new Date(s.completedAt).getTime() : 0))
+            : null
+        };
+      }).filter(stat => stat.equipment !== null)
+        .sort((a, b) => b.totalServices - a.totalServices);
+
+      // Estadísticas por tipo de equipo
+      const servicesByEquipmentType = equipments.reduce((acc, equipment) => {
+        const servicesForEquipment = servicesWithEquipment.filter(s => 
+          s.equipmentIds.includes(equipment.id)
+        );
+        
+        if (!acc[equipment.type]) {
+          acc[equipment.type] = {
+            type: equipment.type,
+            equipmentCount: 0,
+            totalServices: 0,
+            completedServices: 0,
+            pendingServices: 0
+          };
+        }
+        
+        acc[equipment.type].equipmentCount++;
+        acc[equipment.type].totalServices += servicesForEquipment.length;
+        acc[equipment.type].completedServices += servicesForEquipment.filter(s => s.status === 'COMPLETED').length;
+        acc[equipment.type].pendingServices += servicesForEquipment.filter(s => 
+          ['PENDING', 'IN_PROGRESS'].includes(s.status)
+        ).length;
+        
+        return acc;
+      }, {} as Record<string, any>);
+
+      return {
+        equipmentStats: equipmentStats.slice(0, 10), // Top 10 equipos con más servicios
+        servicesByEquipmentType: Object.values(servicesByEquipmentType),
+        totalEquipmentsWithServices: equipmentStats.length,
+        totalServices: servicesWithEquipment.length
+      };
+
+    } catch (error) {
+      console.error('Error fetching services by equipment:', error);
+      throw new Error('Error al obtener estadísticas de servicios por equipo');
+    }
+  }
+
+  /**
+   * Obtiene estadísticas de eficiencia de técnicos (SIMPLIFICADO)
+   */
+  static async getTechnicianEfficiency(technicianId?: string) {
+    try {
+      console.log(`🔍 getTechnicianEfficiency: Obteniendo datos simples${technicianId ? ` para técnico ${technicianId}` : ' para todos los técnicos'}...`);
+      
+      // SIMPLE: Solo leer datos básicos de la tabla technicians
+      const whereClause = technicianId ? { id: technicianId } : {};
+      
+      const technicians = await prisma.technician.findMany({
+        where: whereClause,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          servicesCompleted: true,
+          averageTime: true,
+          rating: true,
+          specialty: true
+        }
+      });
+
+      console.log(`🔍 getTechnicianEfficiency: Encontrados ${technicians.length} técnicos`);
+
+      // Formatear respuesta simple
+      const efficiencyData = technicians.map(tech => ({
+        name: `${tech.firstName} ${tech.lastName}`,
+        specialty: tech.specialty,
+        servicesCompleted: tech.servicesCompleted,
+        averageTime: tech.averageTime || 'N/A',
+        rating: Number((tech.rating || 0).toFixed(1))
+      }));
+
+      return {
+        technicians: efficiencyData,
+        total: technicians.length
+      };
+
+    } catch (error) {
+      console.error('Error fetching technician efficiency:', error);
+      throw new Error('Error al obtener estadísticas de eficiencia de técnicos');
+    }
+  }
+
+  /**
+   * Obtiene rankings de clientes
+   */
+  static async getClientRankings() {
+    try {
+      const [
+        topByServices,
+        topByIncome,
+        mostActiveClients
+      ] = await Promise.all([
+        // Top clientes por número de servicios
+        prisma.service.groupBy({
+          by: ['clientId'],
+          _count: { id: true },
+          orderBy: { _count: { id: 'desc' } },
+          take: 10
+        }),
+
+        // Top clientes por ingresos generados (cotizaciones aprobadas)
+        prisma.quote.groupBy({
+          by: ['clientId'],
+          where: { status: 'APPROVED' },
+          _sum: { amount: true },
+          _count: { id: true },
+          orderBy: { _sum: { amount: 'desc' } },
+          take: 10
+        }),
+
+        // Clientes más activos (servicios recientes)
+        prisma.service.groupBy({
+          by: ['clientId'],
+          where: {
+            createdAt: {
+              gte: new Date(new Date().setMonth(new Date().getMonth() - 3)) // Últimos 3 meses
+            }
+          },
+          _count: { id: true },
+          orderBy: { _count: { id: 'desc' } },
+          take: 10
+        })
+      ]);
+
+      // Obtener información completa de clientes
+      const allClientIds = [...new Set([
+        ...topByServices.map(item => item.clientId),
+        ...topByIncome.map(item => item.clientId),
+        ...mostActiveClients.map(item => item.clientId)
+      ])];
+
+      const clients = await prisma.client.findMany({
+        where: { id: { in: allClientIds } },
+        select: {
+          id: true,
+          companyName: true,
+          contactPerson: true,
+          clientType: true,
+          sector: true,
+          isVip: true,
+          createdAt: true
+        }
+      });
+
+      // Procesar rankings
+      const processRanking = (data: any[], clients: any[], type: 'services' | 'income' | 'activity') => {
+        return data.map((item, index) => {
+          const client = clients.find(c => c.id === item.clientId);
+          const baseData = {
+            rank: index + 1,
+            clientId: item.clientId,
+            clientName: client?.companyName || client?.contactPerson || 'Cliente desconocido',
+            clientType: client?.clientType || 'N/A',
+            sector: client?.sector || 'N/A',
+            isVip: client?.isVip || false
+          };
+
+          switch (type) {
+            case 'services':
+              return {
+                ...baseData,
+                totalServices: item._count.id,
+                metric: item._count.id
+              };
+            case 'income':
+              return {
+                ...baseData,
+                totalIncome: Number(item._sum.amount || 0),
+                totalQuotes: item._count.id,
+                metric: Number(item._sum.amount || 0)
+              };
+            case 'activity':
+              return {
+                ...baseData,
+                recentServices: item._count.id,
+                metric: item._count.id
+              };
+            default:
+              return baseData;
+          }
+        });
+      };
+
+      // Calcular estadísticas adicionales
+      const totalClients = await prisma.client.count({ where: { status: 'ACTIVE' } });
+      const vipClients = clients.filter(c => c.isVip).length;
+      const averageServicesPerClient = topByServices.length > 0 
+        ? topByServices.reduce((sum, item) => sum + item._count.id, 0) / topByServices.length 
+        : 0;
+
+      return {
+        topByServices: processRanking(topByServices, clients, 'services'),
+        topByIncome: processRanking(topByIncome, clients, 'income'),
+        mostActiveClients: processRanking(mostActiveClients, clients, 'activity'),
+        summary: {
+          totalActiveClients: totalClients,
+          vipClients,
+          averageServicesPerClient: Number(averageServicesPerClient.toFixed(2))
+        }
+      };
+
+    } catch (error) {
+      console.error('Error fetching client rankings:', error);
+      throw new Error('Error al obtener rankings de clientes');
+    }
+  }
+
+  /**
    * Obtiene estadísticas detalladas de servicios
    * @param filters Filtros opcionales para la consulta
    * @returns Promise<ServiceStats>
@@ -349,7 +645,7 @@ export class StatsService {
         prisma.quote.aggregate({
           where: {
             status: 'APPROVED',
-            createdAt: {
+            approvedAt: {
               gte: startDate,
               lte: now
             }
@@ -362,7 +658,7 @@ export class StatsService {
         prisma.quote.aggregate({
           where: {
             status: 'APPROVED',
-            createdAt: {
+            approvedAt: {
               gte: previousStartDate,
               lte: previousEndDate
             }
@@ -415,10 +711,10 @@ export class StatsService {
 
         // Ingresos mensuales (últimos 12 meses)
         prisma.quote.groupBy({
-          by: ['createdAt'],
+          by: ['approvedAt'],
           where: {
             status: 'APPROVED',
-            createdAt: {
+            approvedAt: {
               gte: new Date(new Date().setMonth(new Date().getMonth() - 12))
             }
           },
@@ -467,115 +763,42 @@ export class StatsService {
   }
 
   /**
-   * Obtiene rankings de técnicos
-   * @returns Promise<TechnicianRankings>
+   * Obtiene rankings de técnicos (SIMPLIFICADO - solo datos de la tabla)
    */
   static async getTechnicianRankings() {
     try {
-      const [
-        topByServices,
-        topByRating,
-        efficiencyData
-      ] = await Promise.all([
-        // Top 5 por servicios completados
-        prisma.technician.findMany({
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            servicesCompleted: true,
-            specialty: true
-          },
-          orderBy: { servicesCompleted: 'desc' },
-          take: 5
-        }),
+      console.log('🔍 getTechnicianRankings: Obteniendo datos directos de la tabla técnicos...');
+      
+      // SIMPLE: Solo leer la tabla technicians y ordenar por servicesCompleted
+      const topTechnicians = await prisma.technician.findMany({
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          servicesCompleted: true,
+          averageTime: true,
+          rating: true,
+          specialty: true
+        },
+        orderBy: { servicesCompleted: 'desc' },
+        take: 10
+      });
 
-        // Top 5 por calificación
-        prisma.technician.findMany({
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            rating: true,
-            servicesCompleted: true,
-            specialty: true
-          },
-          where: {
-            rating: { gt: 0 }
-          },
-          orderBy: { rating: 'desc' },
-          take: 5
-        }),
+      console.log(`🔍 getTechnicianRankings: Encontrados ${topTechnicians.length} técnicos`);
 
-        // Datos de eficiencia (servicios/tiempo promedio)
-        prisma.technician.findMany({
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            servicesCompleted: true,
-            averageTime: true,
-            rating: true,
-            specialty: true
-          },
-          where: {
-            averageTime: { not: null },
-            servicesCompleted: { gt: 0 }
-          }
-        })
-      ]);
-
-      // Calcular eficiencia (servicios por hora)
-      const efficiency = efficiencyData
-        .map(tech => {
-          // Convertir averageTime (que puede estar en minutos) a número
-          let avgTimeInMinutes = 0;
-          if (tech.averageTime) {
-            // Si averageTime es un número, lo usamos directamente
-            if (typeof tech.averageTime === 'number') {
-              avgTimeInMinutes = tech.averageTime;
-            } else {
-              // Si es string, parseamos (asumiendo que está en minutos)
-              avgTimeInMinutes = parseFloat(tech.averageTime.toString()) || 0;
-            }
-          }
-          
-          return {
-            id: tech.id,
-            firstName: tech.firstName,
-            lastName: tech.lastName,
-            servicesCompleted: tech.servicesCompleted,
-            averageTime: avgTimeInMinutes,
-            efficiency: avgTimeInMinutes > 0 ? tech.servicesCompleted / (avgTimeInMinutes / 60) : 0,
-            rating: tech.rating || 0,
-            specialty: tech.specialty
-          };
-        })
-        .sort((a, b) => b.efficiency - a.efficiency)
-        .slice(0, 5);
+      // Formatear respuesta simple
+      const formattedTechnicians = topTechnicians.map((tech, index) => ({
+        rank: index + 1,
+        name: `${tech.firstName} ${tech.lastName}`,
+        servicesCompleted: tech.servicesCompleted,
+        averageTime: tech.averageTime || 'N/A',
+        rating: Number((tech.rating || 0).toFixed(1)),
+        specialty: tech.specialty
+      }));
 
       return {
-        topByServices: topByServices.map(tech => ({
-          id: tech.id,
-          name: `${tech.firstName} ${tech.lastName}`,
-          servicesCompleted: tech.servicesCompleted,
-          specialty: tech.specialty
-        })),
-        topByRating: topByRating.map(tech => ({
-          id: tech.id,
-          name: `${tech.firstName} ${tech.lastName}`,
-          rating: Number((tech.rating || 0).toFixed(2)),
-          servicesCompleted: tech.servicesCompleted,
-          specialty: tech.specialty
-        })),
-        topByEfficiency: efficiency.map(tech => ({
-          id: tech.id,
-          name: `${tech.firstName} ${tech.lastName}`,
-          efficiency: Number(tech.efficiency.toFixed(2)),
-          servicesPerHour: Number((tech.efficiency).toFixed(1)),
-          averageTime: tech.averageTime,
-          specialty: tech.specialty
-        }))
+        topTechnicians: formattedTechnicians,
+        total: topTechnicians.length
       };
 
     } catch (error) {
@@ -617,7 +840,7 @@ export class StatsService {
     const monthlyMap = new Map();
     
     data.forEach(item => {
-      const date = new Date(item.createdAt);
+      const date = new Date(item.approvedAt);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
       if (monthlyMap.has(monthKey)) {
@@ -669,12 +892,32 @@ export class StatsService {
    * Convierte clave de mes a etiqueta legible
    */
   private static getMonthLabel(monthKey: string): string {
+    if (!monthKey || !monthKey.includes('-')) {
+      console.log('⚠️ getMonthLabel: monthKey inválido:', monthKey);
+      return 'Mes desconocido';
+    }
+    
     const [year, month] = monthKey.split('-');
+    const monthNumber = parseInt(month, 10);
+    const yearNumber = parseInt(year, 10);
+    
+    if (isNaN(monthNumber) || isNaN(yearNumber)) {
+      console.log('⚠️ getMonthLabel: Error parseando fecha:', { year, month, monthKey });
+      return 'Fecha inválida';
+    }
+    
     const monthNames = [
       'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
       'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
     ];
-    return `${monthNames[parseInt(month) - 1]} ${year}`;
+    
+    const monthIndex = monthNumber - 1;
+    if (monthIndex < 0 || monthIndex >= 12) {
+      console.log('⚠️ getMonthLabel: Índice de mes inválido:', monthIndex);
+      return 'Mes inválido';
+    }
+    
+    return `${monthNames[monthIndex]} ${yearNumber}`;
   }
 
   /**

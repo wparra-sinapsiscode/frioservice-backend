@@ -65,6 +65,76 @@ export class StatsController {
   }
 
   /**
+   * Obtiene estadísticas de servicios por equipo
+   * GET /api/stats/equipment/services
+   */
+  static async getServicesByEquipment(_req: Request, res: Response): Promise<void> {
+    try {
+      const stats = await StatsService.getServicesByEquipment();
+
+      res.status(200).json({
+        success: true,
+        message: 'Estadísticas de servicios por equipo obtenidas exitosamente',
+        data: stats
+      });
+    } catch (error: any) {
+      console.error('Error en getServicesByEquipment:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor al obtener estadísticas de equipos',
+        error: error.message || 'Unknown error'
+      });
+    }
+  }
+
+  /**
+   * Obtiene estadísticas de eficiencia de técnicos
+   * GET /api/stats/technicians/efficiency?technicianId=xxx
+   */
+  static async getTechnicianEfficiency(req: Request, res: Response): Promise<void> {
+    try {
+      const technicianId = req.query['technicianId'] as string;
+      const stats = await StatsService.getTechnicianEfficiency(technicianId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Estadísticas de eficiencia de técnicos obtenidas exitosamente',
+        data: stats
+      });
+    } catch (error: any) {
+      console.error('Error en getTechnicianEfficiency:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor al obtener estadísticas de eficiencia',
+        error: error.message || 'Unknown error'
+      });
+    }
+  }
+
+  /**
+   * Obtiene rankings de clientes
+   * GET /api/stats/clients/rankings
+   */
+  static async getClientRankings(_req: Request, res: Response): Promise<void> {
+    try {
+      const rankings = await StatsService.getClientRankings();
+
+      res.status(200).json({
+        success: true,
+        message: 'Rankings de clientes obtenidos exitosamente',
+        data: rankings
+      });
+    } catch (error: any) {
+      console.error('Error en getClientRankings:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor al obtener rankings de clientes',
+        error: error.message || 'Unknown error'
+      });
+    }
+  }
+
+  /**
    * Obtiene estadísticas detalladas de servicios con filtros
    * GET /api/stats/services?startDate=&endDate=&technicianId=&clientId=
    */
@@ -215,12 +285,9 @@ export class StatsController {
       
       console.log('🔥🔥🔥 2. STATS CONTROLLER: Rankings de técnicos obtenidos exitosamente');
       console.log('🔥🔥🔥 Technician rankings preview:', {
-        topByServicesCount: rankings.topByServices.length,
-        topByRatingCount: rankings.topByRating.length,
-        topByEfficiencyCount: rankings.topByEfficiency.length,
-        topPerformer: rankings.topByServices[0]?.name || 'N/A',
-        topRated: rankings.topByRating[0]?.name || 'N/A',
-        mostEfficient: rankings.topByEfficiency[0]?.name || 'N/A'
+        totalTechnicians: rankings.total,
+        topPerformer: rankings.topTechnicians[0]?.name || 'N/A',
+        topServices: rankings.topTechnicians[0]?.servicesCompleted || 0
       });
 
       res.status(200).json({
@@ -257,7 +324,7 @@ export class StatsController {
 
       const overview = {
         dashboard: dashboardStats,
-        topTechnicians: technicianRankings.topByServices.slice(0, 3), // Top 3 técnicos
+        topTechnicians: technicianRankings.topTechnicians.slice(0, 3), // Top 3 técnicos
         quickStats: {
           totalServices: dashboardStats.totalServices.total,
           activeClients: dashboardStats.totalClients,

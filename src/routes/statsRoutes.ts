@@ -94,6 +94,39 @@ router.get('/transactions/recent',
 );
 
 /**
+ * Obtiene estadísticas de servicios por equipo
+ * GET /api/stats/equipment/services
+ * Requiere: ADMIN
+ */
+router.get('/equipment/services',
+  authorize('ADMIN'),
+  validateQuery(EmptyQuerySchema),
+  StatsController.getServicesByEquipment
+);
+
+/**
+ * Obtiene estadísticas de eficiencia de técnicos
+ * GET /api/stats/technicians/efficiency?technicianId=xxx
+ * Requiere: ADMIN
+ */
+router.get('/technicians/efficiency',
+  authorize('ADMIN'),
+  validateQuery(z.object({ technicianId: z.string().cuid().optional() }).optional()),
+  StatsController.getTechnicianEfficiency
+);
+
+/**
+ * Obtiene rankings de clientes
+ * GET /api/stats/clients/rankings
+ * Requiere: ADMIN
+ */
+router.get('/clients/rankings',
+  authorize('ADMIN'),
+  validateQuery(EmptyQuerySchema),
+  StatsController.getClientRankings
+);
+
+/**
  * Obtiene métricas en tiempo real
  * GET /api/stats/realtime
  * Requiere: ADMIN
