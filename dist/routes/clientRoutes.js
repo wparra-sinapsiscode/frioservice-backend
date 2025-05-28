@@ -23,5 +23,6 @@ router.delete('/:id', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateP
 router.get('/:id/stats', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateParams)(clientValidators_1.ClientIdSchema), clientController_1.ClientController.getStats);
 router.patch('/:id/status', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateParams)(clientValidators_1.ClientIdSchema), (0, validation_1.validateBody)(clientValidators_1.UpdateClientStatusSchema), clientController_1.ClientController.updateStatus);
 router.patch('/:id/vip', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateParams)(clientValidators_1.ClientIdSchema), (0, validation_1.validateBody)(clientValidators_1.ToggleVipSchema), clientController_1.ClientController.toggleVip);
+router.get('/:id/quote-options', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateParams)(clientValidators_1.ClientIdSchema), clientController_1.ClientController.getQuoteOptions);
 exports.default = router;
 //# sourceMappingURL=clientRoutes.js.map

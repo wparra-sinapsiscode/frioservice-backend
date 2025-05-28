@@ -422,6 +422,25 @@ class ClientController {
             });
         }
     }
+    static async getQuoteOptions(req, res) {
+        try {
+            const { id: clientId } = req.params;
+            const quoteOptions = await clientService_1.ClientService.getQuoteOptions(clientId);
+            res.status(200).json({
+                success: true,
+                message: "Opciones de cotización obtenidas exitosamente",
+                data: quoteOptions,
+            });
+        }
+        catch (error) {
+            console.error("Error fetching quote options:", error);
+            res.status(500).json({
+                success: false,
+                message: "Error interno del servidor al obtener opciones de cotización",
+                error: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
+    }
 }
 exports.ClientController = ClientController;
 //# sourceMappingURL=clientController.js.map

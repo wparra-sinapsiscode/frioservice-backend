@@ -11,7 +11,7 @@ router.post('/', (0, auth_1.authorize)('ADMIN', 'CLIENT'), (0, validation_1.vali
 router.get('/', (0, auth_1.authorize)('ADMIN', 'TECHNICIAN', 'CLIENT'), (0, validation_1.validateQuery)(equipmentValidators_1.EquipmentFiltersSchema), equipmentController_1.EquipmentController.getAll);
 router.get('/:id', (0, auth_1.authorize)('ADMIN', 'TECHNICIAN', 'CLIENT'), (0, validation_1.validateParams)(equipmentValidators_1.EquipmentIdSchema), equipmentController_1.EquipmentController.getById);
 router.put('/:id', (0, auth_1.authorize)('ADMIN', 'CLIENT'), (0, validation_1.validateParams)(equipmentValidators_1.EquipmentIdSchema), (0, validation_1.validateBody)(equipmentValidators_1.UpdateEquipmentSchema), equipmentController_1.EquipmentController.update);
-router.delete('/:id', (0, auth_1.authorize)('ADMIN'), (0, validation_1.validateParams)(equipmentValidators_1.EquipmentIdSchema), equipmentController_1.EquipmentController.delete);
+router.delete('/:id', (0, auth_1.authorize)('ADMIN', 'CLIENT'), (0, validation_1.validateParams)(equipmentValidators_1.EquipmentIdSchema), equipmentController_1.EquipmentController.delete);
 router.get('/client/:clientId', (0, auth_1.authorize)('ADMIN', 'CLIENT'), (0, validation_1.validateParams)(equipmentValidators_1.ClientIdSchema), (0, validation_1.validateQuery)(equipmentValidators_1.EquipmentFiltersSchema), equipmentController_1.EquipmentController.getByClient);
 router.patch('/:id/status', (0, auth_1.authorize)('ADMIN', 'TECHNICIAN', 'CLIENT'), (0, validation_1.validateParams)(equipmentValidators_1.EquipmentIdSchema), (0, validation_1.validateBody)(equipmentValidators_1.EquipmentStatusSchema), equipmentController_1.EquipmentController.updateStatus);
 exports.default = router;

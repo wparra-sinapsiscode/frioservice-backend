@@ -12,5 +12,6 @@ export declare class ClientController {
     static updateStatus(req: Request, res: Response): Promise<void>;
     static toggleVip(req: Request, res: Response): Promise<void>;
     static search(req: Request, res: Response): Promise<void>;
+    static getQuoteOptions(req: Request, res: Response): Promise<void>;
 }
 //# sourceMappingURL=clientController.d.ts.map

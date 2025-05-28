@@ -593,4 +593,29 @@ export class ClientController {
       });
     }
   }
+
+  /**
+   * Obtener opciones de cotización para un cliente (técnicos y servicios activos)
+   * GET /api/clients/:id/quote-options
+   */
+  static async getQuoteOptions(req: Request, res: Response): Promise<void> {
+    try {
+      const { id: clientId } = req.params;
+
+      const quoteOptions = await ClientService.getQuoteOptions(clientId);
+
+      res.status(200).json({
+        success: true,
+        message: "Opciones de cotización obtenidas exitosamente",
+        data: quoteOptions,
+      });
+    } catch (error) {
+      console.error("Error fetching quote options:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error interno del servidor al obtener opciones de cotización",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
 }

@@ -108,4 +108,11 @@ router.patch('/:id/vip',
   ClientController.toggleVip
 );
 
+// Nueva ruta para obtener opciones de cotización (técnicos y servicios activos)
+router.get('/:id/quote-options',
+  authorize('ADMIN'),
+  validateParams(ClientIdSchema),
+  ClientController.getQuoteOptions
+);
+
 export default router;

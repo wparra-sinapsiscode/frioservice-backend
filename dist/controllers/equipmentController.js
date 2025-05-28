@@ -261,21 +261,70 @@ class EquipmentController {
     static async delete(req, res) {
         try {
             const { id } = req.params;
-            const success = await equipmentService_1.EquipmentService.deleteEquipment(id);
-            if (!success) {
+            console.log('🔥 DELETE BACKEND - Equipment ID a eliminar:', id);
+            console.log('🔥 DELETE BACKEND - Request user object:', req.user);
+            console.log('🔥 DELETE BACKEND - User role:', req.user?.role);
+            console.log('🔥 DELETE BACKEND - User ID from token:', req.user?.userId || req.user?.id);
+            const existingEquipment = await equipmentService_1.EquipmentService.getEquipmentById(id);
+            console.log('🔥 DELETE BACKEND - Equipment encontrado:', existingEquipment);
+            console.log('🔥 DELETE BACKEND - Equipment clientId:', existingEquipment?.clientId);
+            if (!existingEquipment) {
+                console.log('🔥 DELETE BACKEND - Equipment no encontrado');
                 res.status(404).json({
                     success: false,
                     message: 'Equipo no encontrado'
                 });
                 return;
             }
+            if (req.user?.role === 'CLIENT') {
+                console.log('🔥 DELETE BACKEND - Usuario es CLIENT, verificando ownership');
+                const userId = req.user?.userId || req.user?.id;
+                console.log('🔥 DELETE BACKEND - UserId extraído:', userId);
+                if (!userId) {
+                    console.log('🔥 DELETE BACKEND - No userId encontrado');
+                    res.status(401).json({
+                        success: false,
+                        message: 'Usuario no autenticado'
+                    });
+                    return;
+                }
+                const client = await equipmentService_1.EquipmentService.getClientByUserId(userId);
+                console.log('🔥 DELETE BACKEND - Cliente encontrado:', client);
+                console.log('🔥 DELETE BACKEND - Cliente ID:', client?.id);
+                console.log('🔥 DELETE BACKEND - Equipment clientId:', existingEquipment.clientId);
+                const isOwner = client && existingEquipment.clientId === client.id;
+                console.log('🔥 DELETE BACKEND - Es propietario?:', isOwner);
+                if (!client || existingEquipment.clientId !== client.id) {
+                    console.log('🔥 DELETE BACKEND - Sin permisos para eliminar');
+                    res.status(403).json({
+                        success: false,
+                        message: 'No tienes permisos para eliminar este equipo'
+                    });
+                    return;
+                }
+            }
+            else {
+                console.log('🔥 DELETE BACKEND - Usuario NO es CLIENT, rol:', req.user?.role);
+            }
+            console.log('🔥 DELETE BACKEND - Procediendo a eliminar equipment');
+            const success = await equipmentService_1.EquipmentService.deleteEquipment(id);
+            console.log('🔥 DELETE BACKEND - Resultado eliminación:', success);
+            if (!success) {
+                console.log('🔥 DELETE BACKEND - Error en eliminación');
+                res.status(404).json({
+                    success: false,
+                    message: 'Error al eliminar el equipo'
+                });
+                return;
+            }
+            console.log('🔥 DELETE BACKEND - Equipment eliminado exitosamente');
             res.status(200).json({
                 success: true,
                 message: 'Equipo eliminado exitosamente'
             });
         }
         catch (error) {
-            console.error('Error deleting equipment:', error);
+            console.error('🔥 DELETE BACKEND - Error:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error interno del servidor',

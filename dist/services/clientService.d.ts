@@ -141,5 +141,11 @@ export declare class ClientService {
     }>;
     static updateServiceCount(clientId: string): Promise<void>;
     static updateNextServiceDate(clientId: string): Promise<void>;
+    static getQuoteOptions(clientId: string): Promise<{
+        assignedTechnicians: any[];
+        servicesByTechnician: {
+            [key: string]: any[];
+        };
+    }>;
 }
 //# sourceMappingURL=clientService.d.ts.map

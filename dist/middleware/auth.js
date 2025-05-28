@@ -6,8 +6,12 @@ const auth_1 = require("../utils/auth");
 const authenticate = (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
+        console.log('🔥 AUTH MIDDLEWARE - Authorization header:', authHeader?.substring(0, 30) + '...');
         const token = (0, auth_1.extractTokenFromHeader)(authHeader);
+        console.log('🔥 AUTH MIDDLEWARE - Token extracted:', !!token);
+        console.log('🔥 AUTH MIDDLEWARE - Token preview:', token?.substring(0, 20) + '...');
         if (!token) {
+            console.log('🔥 AUTH MIDDLEWARE - No token found');
             res.status(401).json({
                 success: false,
                 message: 'Token de acceso requerido',
@@ -16,11 +20,14 @@ const authenticate = (req, res, next) => {
             return;
         }
         const decoded = (0, auth_1.verifyToken)(token);
+        console.log('🔥 AUTH MIDDLEWARE - Token decoded successfully:', decoded);
+        console.log('🔥 AUTH MIDDLEWARE - User ID from token:', decoded.userId || decoded.id);
+        console.log('🔥 AUTH MIDDLEWARE - User role from token:', decoded.role);
         req.user = decoded;
         next();
     }
     catch (error) {
-        console.error('Authentication error:', error);
+        console.error('🔥 AUTH MIDDLEWARE - Authentication error:', error);
         res.status(401).json({
             success: false,
             message: error instanceof Error ? error.message : 'Token inválido o expirado',

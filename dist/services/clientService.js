@@ -631,6 +631,66 @@ class ClientService {
             throw error;
         }
     }
+    static async getQuoteOptions(clientId) {
+        try {
+            const activeServices = await prisma.service.findMany({
+                where: {
+                    clientId,
+                    status: {
+                        in: ['PENDING', 'IN_PROGRESS']
+                    }
+                },
+                include: {
+                    technician: {
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    username: true,
+                                    email: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            const technicianMap = new Map();
+            activeServices.forEach(service => {
+                if (service.technician && service.technician.user) {
+                    const tech = service.technician;
+                    const user = tech.user;
+                    technicianMap.set(tech.id, {
+                        id: tech.id,
+                        name: user.username,
+                        email: user.email
+                    });
+                }
+            });
+            const assignedTechnicians = Array.from(technicianMap.values());
+            const servicesByTechnician = {};
+            activeServices.forEach(service => {
+                if (service.technicianId) {
+                    if (!servicesByTechnician[service.technicianId]) {
+                        servicesByTechnician[service.technicianId] = [];
+                    }
+                    servicesByTechnician[service.technicianId].push({
+                        id: service.id,
+                        title: service.title,
+                        type: service.type,
+                        scheduledDate: service.scheduledDate
+                    });
+                }
+            });
+            return {
+                assignedTechnicians,
+                servicesByTechnician
+            };
+        }
+        catch (error) {
+            console.error('Error fetching quote options:', error);
+            throw error;
+        }
+    }
 }
 exports.ClientService = ClientService;
 //# sourceMappingURL=clientService.js.map
