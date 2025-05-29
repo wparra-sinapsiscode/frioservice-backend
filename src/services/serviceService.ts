@@ -310,6 +310,11 @@ export class ServiceService {
       if (data.status === ServiceStatus.COMPLETED && !updateData.completedAt) {
         updateData.completedAt = new Date();
       }
+      
+      // Garantizar que accessInstructions sea una cadena de texto si está presente
+      if (updateData.accessInstructions === null) {
+        updateData.accessInstructions = '';
+      }
 
 
       const service = await prisma.service.update({
@@ -491,7 +496,9 @@ export class ServiceService {
               id: {
                 in: currentService.equipmentIds
               },
-              status: 'BROKEN' // Solo cambiar los que están broken
+              status: {
+                in: ['BROKEN', 'MAINTENANCE', 'INACTIVE'] // Actualizar equipos en cualquiera de estos estados
+              }
             },
             data: {
               status: 'ACTIVE'
